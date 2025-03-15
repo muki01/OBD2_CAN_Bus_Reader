@@ -1,17 +1,21 @@
-twai_message_t messageBuffer[20];
-int bufferIndex = 0;
+// twai_message_t messageBuffer[20];
+// int bufferIndex = 0;
 
 void read_CAN() {
-  getPID(0x0C);
-  delay(100);
-  readCAN();
-  processFromBuffer();
+  getPID(ENGINE_RPM);
+  getPID(ENGINE_LOAD);
+  getPID(ENGINE_COOLANT_TEMP);
+  getPID(INTAKE_MANIFOLD_ABS_PRESSURE);
+  getPID(ENGINE_RPM);
+  getPID(VEHICLE_SPEED);
+  getPID(INTAKE_AIR_TEMP);
+
 }
 
 void init_CAN() {
   Serial.println("Initializing TWAI...");
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
-  twai_timing_config_t t_config = CAN_SPEED;    // Set to 500 kbps
+  twai_timing_config_t t_config = CAN_SPEED;
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();  // Accept all messages
 
   // Install TWAI driver
@@ -31,7 +35,6 @@ void init_CAN() {
   }
 }
 
-// Send RPM query
 void getPID(byte pid) {
   twai_message_t message;
 
@@ -43,6 +46,7 @@ void getPID(byte pid) {
     message.extd = 0;
   }
 
+  message.rtr = 0;               // Data frame
   message.data_length_code = 8;  // 8-byte data frame
   message.data[0] = 0x02;        // Query length (2 bytes: Mode and PID)
   message.data[1] = 0x01;        // Mode 01: Request current data
@@ -55,6 +59,7 @@ void getPID(byte pid) {
 
   if (twai_transmit(&message, pdMS_TO_TICKS(1000)) == ESP_OK) {
     Serial.println("Query sent.");
+    readCAN();
   } else {
     Serial.println("Failed to send query!");
   }
@@ -62,58 +67,69 @@ void getPID(byte pid) {
 
 void readCAN() {
   twai_message_t response;
+  unsigned long start_time = millis();
+  bool response_received = false;
 
   // Get CAN Message
-  if (twai_receive(&response, pdMS_TO_TICKS(1000)) == ESP_OK) {
-    Serial.print("ID: 0x");
-    Serial.print(response.identifier, HEX);
+  while ((millis() - start_time < 2000) && !response_received) {
+    if (twai_receive(&response, pdMS_TO_TICKS(1000)) == ESP_OK) {
+      if (response.identifier == 0x18DAF110) {
+        response_received = true;
 
-    Serial.print(" RTR");
-    Serial.print(response.rtr, HEX);
+        if (response.data[2] == ENGINE_LOAD) {
+          uint16_t load = (100.0 / 255) * response.data[3];
+          Serial.print("Calculated load value: ");
+          Serial.println(load);
+        }else if (response.data[2] == ENGINE_COOLANT_TEMP) {
+          uint16_t coolantTemp = response.data[3] - 40;
+          Serial.print("Coolang Temp: ");
+          Serial.println(coolantTemp);
+        }else if (response.data[2] == INTAKE_MANIFOLD_ABS_PRESSURE) {
+          uint16_t manifoldPressure = response.data[3];
+          Serial.print("Intake manifold pressure: ");
+          Serial.println(manifoldPressure);
+        }else if (response.data[2] == ENGINE_RPM) {
+          uint16_t rpm = (response.data[3] << 8) | response.data[4];
+          rpm /= 4;
+          Serial.print("Engine RPM: ");
+          Serial.println(rpm);
+        }else if (response.data[2] == VEHICLE_SPEED) {
+          uint16_t speed = response.data[3];
+          Serial.print("Speed: ");
+          Serial.println(speed);
+        }else if (response.data[2] == INTAKE_AIR_TEMP) {
+          uint16_t intakeTemp = response.data[3] - 40;
+          Serial.print("Intake Temp: ");
+          Serial.println(intakeTemp);
+        }
 
-    Serial.print(" EID: ");
-    Serial.print(response.extd, HEX);
 
-    Serial.print(" (DLC): ");
-    Serial.print(response.data_length_code);
+        // Serial.print("ID: 0x");
+        // Serial.print(response.identifier, HEX);
 
-    Serial.print("Data: ");
-    for (int i = 0; i < response.data_length_code; i++) {
-      Serial.print("0x");
-      Serial.print(response.data[i], HEX);
-      if (i < response.data_length_code - 1) {
-        Serial.print(" ");
+        // Serial.print(", RTR: ");
+        // Serial.print(response.rtr, HEX);
+
+        // Serial.print(", EID: ");
+        // Serial.print(response.extd, HEX);
+
+        // Serial.print(", (DLC): ");
+        // Serial.print(response.data_length_code);
+
+        // Serial.print(", Data: ");
+        // for (int i = 0; i < response.data_length_code; i++) {
+        //   Serial.print("0x");
+        //   Serial.print(response.data[i], HEX);
+        //   if (i < response.data_length_code - 1) {
+        //     Serial.print(" ");
+        //   }
+        // }
+        // Serial.println("");
+        break;
       }
-    }
-
-
-    if (bufferIndex < 20) {
-      messageBuffer[bufferIndex] = response;
-      bufferIndex++;
-      Serial.println("Message stored in buffer.");
-    } else {
-      Serial.println("Buffer is full, message not stored!");
-    }
-
-  } else {
-    Serial.println("No message received.");
-  }
-}
-
-void processFromBuffer() {
-  for (int i = 0; i < bufferIndex; i++) {
-    twai_message_t message = messageBuffer[i];
-    
-    if (message.identifier == 0x18DAF110 && message.data[2] == 0x0C) {
-      uint16_t rpm = (message.data[3] << 8) | message.data[4];  // Combine bytes
-      rpm /= 4;
-      Serial.print("Engine RPM from buffer: ");
-      Serial.println(rpm);
-    } else {
-      Serial.println("Non-RPM message in buffer.");
-    }
   }
 
-  bufferIndex = 0;
-  Serial.println("Buffer cleared.");
+  if (!response_received) {
+    Serial.println("OBD2 Timeout!");
+  }
 }
