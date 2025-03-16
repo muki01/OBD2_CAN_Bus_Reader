@@ -1,13 +1,23 @@
 twai_message_t lastMessage;
+byte supportedLiveData[32];
 
 void read_CAN() {
+  if (digitalRead(BOOT_BUTTON_PIN) == LOW && !buttonPressed) {
+    buttonPressed = true;
+    Serial.println("BOOT button Clicked");
+    getPID(SUPPORTED_PIDS_1_20);
+  }
+
+  if (digitalRead(BOOT_BUTTON_PIN) == HIGH) {
+    buttonPressed = false;
+  }
+
   getPID(ENGINE_LOAD);
   getPID(ENGINE_COOLANT_TEMP);
   getPID(INTAKE_MANIFOLD_ABS_PRESSURE);
   getPID(ENGINE_RPM);
   getPID(VEHICLE_SPEED);
   getPID(INTAKE_AIR_TEMP);
-
 }
 
 void init_CAN() {
@@ -62,6 +72,56 @@ void getPID(byte pid) {
       uint16_t intakeTemp = lastMessage.data[3] - 40;
       Serial.print("Intake Temp: ");
       Serial.println(intakeTemp);
+    } else if (lastMessage.data[2] == SUPPORTED_PIDS_1_20) {
+      Serial.println("Supported Live Data: ");
+      int pidIndex = 0;
+      int supportedCount = 0;
+
+      for (int i = 3; i <= 6; i++) {
+        byte value = lastMessage.data[i];
+        for (int bit = 7; bit >= 0; bit--) {
+          if ((value >> bit) & 1) {
+            supportedLiveData[supportedCount++] = pidIndex + 1;
+          }
+          pidIndex++;
+        }
+      }
+
+      if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_21_40)) {
+        writeData(SUPPORTED_PIDS_21_40);
+        readCAN();
+
+        for (int i = 3; i < 6; i++) {
+          byte value = lastMessage.data[i];
+          for (int bit = 7; bit >= 0; bit--) {
+            if ((value >> bit) & 1) {
+              supportedLiveData[supportedCount++] = pidIndex + 1;
+            }
+            pidIndex++;
+          }
+        }
+      }
+
+      if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_41_60)) {
+        writeData(SUPPORTED_PIDS_41_60);
+        readCAN();
+
+        for (int i = 3; i < 6; i++) {
+          byte value = lastMessage.data[i];
+          for (int bit = 7; bit >= 0; bit--) {
+            if ((value >> bit) & 1) {
+              supportedLiveData[supportedCount++] = pidIndex + 1;
+            }
+            pidIndex++;
+          }
+        }
+      }
+
+      for (int i = 0; i < supportedCount; i++) {
+        Serial.print("0x");
+        Serial.println(supportedLiveData[i], HEX);
+      }
+    }
   }
 }
 
