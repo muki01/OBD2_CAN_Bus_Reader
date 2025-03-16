@@ -66,7 +66,6 @@ void getPID(byte pid) {
       intakeAirTempValue = lastMessage.data[3] - 40;
       Serial.println("Intake Temp: " + String(intakeAirTempValue));
     } else if (lastMessage.data[2] == SUPPORTED_PIDS_1_20) {
-      Serial.println("Supported Live Data: ");
       int pidIndex = 0;
       int supportedCount = 0;
 
@@ -110,10 +109,20 @@ void getPID(byte pid) {
         }
       }
 
+      Serial.print("Supported Live Data: ");
       for (int i = 0; i < supportedCount; i++) {
-        Serial.print("0x");
-        Serial.println(supportedLiveData[i], HEX);
+        if (supportedLiveData[i] < 10) {
+          Serial.print("0");
+          Serial.print(supportedLiveData[i], HEX);
+        } else {
+          Serial.print(supportedLiveData[i], HEX);
+        }
+
+        if (i < supportedCount - 1) {
+          Serial.print(" ");
+        }
       }
+      Serial.println();
     }
   }
 }
@@ -168,11 +177,18 @@ bool readCAN() {
         // Serial.print(response.data_length_code);
         // Serial.print(", Data: ");
         // for (int i = 0; i < response.data_length_code; i++) {
-        //   Serial.print("0x");
-        //   Serial.print(response.data[i], HEX);
-        //   if (i < response.data_length_code - 1) Serial.print(" ");
+        //   if (response.data[i] < 10) {
+        //     Serial.print("0");
+        //     Serial.print(response.data[i], HEX);
+        //   } else {
+        //     Serial.print(response.data[i], HEX);
+        //   }
+
+        //   if (i < response.data_length_code - 1) {
+        //     Serial.print(" ");
+        //   }
         // }
-        // Serial.println("");
+        // Serial.println();
         return true;
       }
     } else {
