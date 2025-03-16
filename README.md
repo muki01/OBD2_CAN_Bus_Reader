@@ -1,23 +1,26 @@
 # 🚗OBD2 CAN_BUS Reader
 
-This code is for reading the CAN_BUS in Cars. With this code you can read sensor values, troubleshoot codes and more. It is compatible with 250KBPS and 500KBPS, 11BIT and 29BIT.
-I have shared schematics to communicate with the car. You can use these schematics or you can make another one. I used Arduino nano and ESP32 C3 as microcontrollers, but you can use another microcontrollers like STM32, ESP8266 and much more.
+This code allows you to interface with the CAN Bus in vehicles. It enables you to read sensor values, diagnose trouble codes, and more. It supports various baud rates (125KBPS, 250KBPS, 500KBPS, 1MBPS) and both 11-bit and 29-bit CAN identifiers.
 
-I will share more information about CAN_BUS protocols and communication later. Stay tuned 😉.
+I will share schematics to communicate with the car. You can use these schematics. I am currently testing this code with ESP32 S3. For now it will only work with ESP32 boards, I will do it for other boards in the future.
 
-You can also see [this](https://github.com/muki01/I-K_Bus) project for I/K Bus for BMW cars
+In the future, I will release a separate repository that dives deeper into CAN Bus functionality. In that project, I'll show how you can control various vehicle systems such as headlights, windows, locks, and more using the CAN Bus. I am currently testing this feature, and it works well.
+
+You can also see my other car projects:
+1. [Тhis](https://github.com/muki01/I-K_Bus) project is for BMW with I/K bus system. 
+2. [Тhis](https://github.com/muki01/OBD2_K-line_Reader) project is for Cars with ISO9141 and ISO14230 protocols.
 
 ## ⚙️Instalation
 * Edit the pins and options for your Board
      ~~~
-     #define TX_GPIO_NUM GPIO_NUM_9  // CAN TX pini
-     #define RX_GPIO_NUM GPIO_NUM_10  // CAN RX pini
-     #define CAN_SPEED TWAI_TIMING_CONFIG_500KBITS() // CAN SPEED 250KBITS or 500KBITS 
-     #define CAN_BIT 29 // 11BIT or 29BIT
+     #define TX_GPIO_NUM GPIO_NUM_9                   // CAN TX pin
+     #define RX_GPIO_NUM GPIO_NUM_10                  // CAN RX pin
+     #define CAN_SPEED TWAI_TIMING_CONFIG_500KBITS()  // CAN SPEED 125KBITS, 250KBITS, 500KBITS or 1MBITS
+     #define CAN_BIT 29                               // 11BIT or 29BIT
      ~~~
 * Upload the code to your Board
 
 
 ## 🛠️Schematics for communication
 
-## The device I made with ESP32 C3 SuperMini.
+## The device I made with ESP32 S3 SuperMini.
