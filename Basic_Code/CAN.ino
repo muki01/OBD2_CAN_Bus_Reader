@@ -45,7 +45,7 @@ void init_CAN() {
 
 void getPID(byte pid) {
   writeData(pid);
-  if (read_CAN()) {
+  if (readCAN()) {
 
     if (lastMessage.data[2] == ENGINE_LOAD) {
       uint16_t load = (100.0 / 255) * lastMessage.data[3];
