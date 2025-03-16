@@ -1,8 +1,6 @@
-// twai_message_t messageBuffer[20];
-// int bufferIndex = 0;
+twai_message_t lastMessage;
 
 void read_CAN() {
-  getPID(ENGINE_RPM);
   getPID(ENGINE_LOAD);
   getPID(ENGINE_COOLANT_TEMP);
   getPID(INTAKE_MANIFOLD_ABS_PRESSURE);
@@ -36,6 +34,38 @@ void init_CAN() {
 }
 
 void getPID(byte pid) {
+  writeData(pid);
+  if (read_CAN()) {
+
+    if (lastMessage.data[2] == ENGINE_LOAD) {
+      uint16_t load = (100.0 / 255) * lastMessage.data[3];
+      Serial.print("Calculated load value: ");
+      Serial.println(load);
+    } else if (lastMessage.data[2] == ENGINE_COOLANT_TEMP) {
+      uint16_t coolantTemp = lastMessage.data[3] - 40;
+      Serial.print("Coolang Temp: ");
+      Serial.println(coolantTemp);
+    } else if (lastMessage.data[2] == INTAKE_MANIFOLD_ABS_PRESSURE) {
+      uint16_t manifoldPressure = lastMessage.data[3];
+      Serial.print("Intake manifold pressure: ");
+      Serial.println(manifoldPressure);
+    } else if (lastMessage.data[2] == ENGINE_RPM) {
+      uint16_t rpm = (lastMessage.data[3] << 8) | lastMessage.data[4];
+      rpm /= 4;
+      Serial.print("Engine RPM: ");
+      Serial.println(rpm);
+    } else if (lastMessage.data[2] == VEHICLE_SPEED) {
+      uint16_t speed = lastMessage.data[3];
+      Serial.print("Speed: ");
+      Serial.println(speed);
+    } else if (lastMessage.data[2] == INTAKE_AIR_TEMP) {
+      uint16_t intakeTemp = lastMessage.data[3] - 40;
+      Serial.print("Intake Temp: ");
+      Serial.println(intakeTemp);
+  }
+}
+
+void writeData(byte pid) {
   twai_message_t message;
 
   if (CAN_BIT == 29) {
@@ -50,7 +80,7 @@ void getPID(byte pid) {
   message.data_length_code = 8;  // 8-byte data frame
   message.data[0] = 0x02;        // Query length (2 bytes: Mode and PID)
   message.data[1] = 0x01;        // Mode 01: Request current data
-  message.data[2] = pid;         // PID 0C: RPM
+  message.data[2] = pid;         // PID
   message.data[3] = 0x00;        // Padding bytes
   message.data[4] = 0x00;
   message.data[5] = 0x00;
@@ -59,77 +89,43 @@ void getPID(byte pid) {
 
   if (twai_transmit(&message, pdMS_TO_TICKS(1000)) == ESP_OK) {
     Serial.println("Query sent.");
-    readCAN();
   } else {
     Serial.println("Failed to send query!");
   }
 }
 
-void readCAN() {
+bool readCAN() {
   twai_message_t response;
   unsigned long start_time = millis();
-  bool response_received = false;
 
-  // Get CAN Message
-  while ((millis() - start_time < 2000) && !response_received) {
-    if (twai_receive(&response, pdMS_TO_TICKS(1000)) == ESP_OK) {
-      if (response.identifier == 0x18DAF110) {
-        response_received = true;
-
-        if (response.data[2] == ENGINE_LOAD) {
-          uint16_t load = (100.0 / 255) * response.data[3];
-          Serial.print("Calculated load value: ");
-          Serial.println(load);
-        }else if (response.data[2] == ENGINE_COOLANT_TEMP) {
-          uint16_t coolantTemp = response.data[3] - 40;
-          Serial.print("Coolang Temp: ");
-          Serial.println(coolantTemp);
-        }else if (response.data[2] == INTAKE_MANIFOLD_ABS_PRESSURE) {
-          uint16_t manifoldPressure = response.data[3];
-          Serial.print("Intake manifold pressure: ");
-          Serial.println(manifoldPressure);
-        }else if (response.data[2] == ENGINE_RPM) {
-          uint16_t rpm = (response.data[3] << 8) | response.data[4];
-          rpm /= 4;
-          Serial.print("Engine RPM: ");
-          Serial.println(rpm);
-        }else if (response.data[2] == VEHICLE_SPEED) {
-          uint16_t speed = response.data[3];
-          Serial.print("Speed: ");
-          Serial.println(speed);
-        }else if (response.data[2] == INTAKE_AIR_TEMP) {
-          uint16_t intakeTemp = response.data[3] - 40;
-          Serial.print("Intake Temp: ");
-          Serial.println(intakeTemp);
+  while (millis() - start_time < 2000) {
+    if (twai_receive(&response, pdMS_TO_TICKS(2000)) == ESP_OK) {
+      if (response.identifier == 0x18DAF110 || response.identifier == 0x7E8) {
+        if (memcmp(&lastMessage, &response, sizeof(twai_message_t)) != 0) {
+          memcpy(&lastMessage, &response, sizeof(twai_message_t));
         }
-
 
         // Serial.print("ID: 0x");
         // Serial.print(response.identifier, HEX);
-
         // Serial.print(", RTR: ");
         // Serial.print(response.rtr, HEX);
-
         // Serial.print(", EID: ");
         // Serial.print(response.extd, HEX);
-
         // Serial.print(", (DLC): ");
         // Serial.print(response.data_length_code);
-
         // Serial.print(", Data: ");
         // for (int i = 0; i < response.data_length_code; i++) {
         //   Serial.print("0x");
         //   Serial.print(response.data[i], HEX);
-        //   if (i < response.data_length_code - 1) {
-        //     Serial.print(" ");
-        //   }
+        //   if (i < response.data_length_code - 1) Serial.print(" ");
         // }
         // Serial.println("");
-        break;
+        return true;
       }
+    } else {
+      Serial.println("Not Received any Message!");
+    }
   }
-
-  if (!response_received) {
-    Serial.println("OBD2 Timeout!");
-  }
+  Serial.println("OBD2 Timeout!");
+  return false;
 }
