@@ -48,30 +48,23 @@ void getPID(byte pid) {
   if (readCAN()) {
 
     if (lastMessage.data[2] == ENGINE_LOAD) {
-      uint16_t load = (100.0 / 255) * lastMessage.data[3];
-      Serial.print("Calculated load value: ");
-      Serial.println(load);
+      engineLoadValue = (100.0 / 255) * lastMessage.data[3];
+      Serial.println("Calculated load value: " + String(engineLoadValue));
     } else if (lastMessage.data[2] == ENGINE_COOLANT_TEMP) {
-      uint16_t coolantTemp = lastMessage.data[3] - 40;
-      Serial.print("Coolang Temp: ");
-      Serial.println(coolantTemp);
+      engineCoolantTemp = lastMessage.data[3] - 40;
+      Serial.println("Coolang Temp: " + String(engineCoolantTemp));
     } else if (lastMessage.data[2] == INTAKE_MANIFOLD_ABS_PRESSURE) {
-      uint16_t manifoldPressure = lastMessage.data[3];
-      Serial.print("Intake manifold pressure: ");
-      Serial.println(manifoldPressure);
+      intakeManifoldAbsPressure = lastMessage.data[3];
+      Serial.println("Intake manifold pressure: " + String(intakeManifoldAbsPressure));
     } else if (lastMessage.data[2] == ENGINE_RPM) {
-      uint16_t rpm = (lastMessage.data[3] << 8) | lastMessage.data[4];
-      rpm /= 4;
-      Serial.print("Engine RPM: ");
-      Serial.println(rpm);
+      engineRpmValue = (256 * lastMessage.data[3] + lastMessage.data[4]) / 4;
+      Serial.println("Engine RPM: " + String(engineRpmValue));
     } else if (lastMessage.data[2] == VEHICLE_SPEED) {
-      uint16_t speed = lastMessage.data[3];
-      Serial.print("Speed: ");
-      Serial.println(speed);
+      vehicleSpeedValue = lastMessage.data[3];
+      Serial.println("Speed: " + String(vehicleSpeedValue));
     } else if (lastMessage.data[2] == INTAKE_AIR_TEMP) {
-      uint16_t intakeTemp = lastMessage.data[3] - 40;
-      Serial.print("Intake Temp: ");
-      Serial.println(intakeTemp);
+      intakeAirTempValue = lastMessage.data[3] - 40;
+      Serial.println("Intake Temp: " + String(intakeAirTempValue));
     } else if (lastMessage.data[2] == SUPPORTED_PIDS_1_20) {
       Serial.println("Supported Live Data: ");
       int pidIndex = 0;
