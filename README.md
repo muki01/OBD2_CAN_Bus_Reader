@@ -22,5 +22,6 @@ You can also see my other car projects:
 
 
 ## 🛠️Schematics for communication
+<img src="https://github.com/user-attachments/assets/3fdc245d-841e-4733-b52c-21789ddfdf5e" width=70%>
 
 ## The device I made with ESP32 S3 SuperMini.
