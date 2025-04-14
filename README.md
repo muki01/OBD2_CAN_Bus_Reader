@@ -20,6 +20,14 @@ You can also see my other car projects:
      ~~~
 * Upload the code to your Board
 
+> [!WARNING] 
+> I am not responsible for any issues or damages that may occur during your testing. Please proceed with caution and at your own risk.
+
+
+## 📱Pictures of the application I made
+<img width=90% src="https://github.com/user-attachments/assets/766e178a-b956-4bdb-8f64-1919da479c65">
+<img width=90% src="https://github.com/user-attachments/assets/24f8f3cd-4056-44de-8414-635a4de0d60c">
+
 
 ## 🛠️Schematics for communication
 <img src="https://github.com/user-attachments/assets/3fdc245d-841e-4733-b52c-21789ddfdf5e" width=70%>
