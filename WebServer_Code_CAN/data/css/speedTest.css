@@ -112,8 +112,8 @@ main .box {
     text-align: center;
 }
 
-    display: grid;
 main .dataBox {
+    display: none;
     grid-template-columns: 1fr;
     gap: 10px 40px;
 }
@@ -206,6 +206,20 @@ main .info p {
     padding: 10px 20px 20px;
     font-size: 16px;
     line-height: 22px;
+}
+
+main .statusBox {
+    background-color: #393939;
+    border-radius: 10px;
+    text-align: center;
+    padding: 2px 0;
+    margin-bottom: 10px;
+}
+
+main .statusBox h1 {
+    margin: 14px 0;
+    font-size: 26px;
+    color: #00a0eb;
 }
 
 @media screen and (max-width: 700px) {
