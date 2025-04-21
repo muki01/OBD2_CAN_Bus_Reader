@@ -133,6 +133,11 @@ void initWebServer() {
     String gateway = request->arg("gateway");
     changeWifiSettings(ssid, password, ipAddress, subnetMask, gateway);
   });
+  server.on("/protocolOptions", HTTP_POST, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", "Succesfully");
+    String protocol = request->arg("protocol");
+    changeCommunicationProtocol(protocol);
+  });
 
   server.on("/pidSelect", HTTP_POST, [](AsyncWebServerRequest *request) {
     int pidCount = request->args();
@@ -297,6 +302,8 @@ String JsonData() {
     }
   }
 
+  jsonDoc["selectedProtocol"] = protocol;
+  jsonDoc["connectedProtocol"] = connectedProtocol;
   jsonDoc["Voltage"] = VOLTAGE;
   jsonDoc["vehicleStatus"] = conectionStatus;
   serializeJson(jsonDoc, JSONtxt);

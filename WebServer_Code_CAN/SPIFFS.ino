@@ -16,6 +16,7 @@ void readSettings() {
       else if (line.startsWith("ipAddress=")) IP_address = line.substring(10);
       else if (line.startsWith("subnetMask=")) SubnetMask = line.substring(11);
       else if (line.startsWith("gateway=")) Gateway = line.substring(8);
+      else if (line.startsWith("protocol=")) protocol = line.substring(9);
     }
     configFile.close();
   }
@@ -47,4 +48,12 @@ void changeWifiSettings(String ssid, String password, String ipAddress, String s
   updateSetting("subnetMask", subnetMask);
   updateSetting("gateway", gateway);
   ESP.restart();
+}
+
+void changeCommunicationProtocol(String communicationProtocol) {
+  updateSetting("protocol", communicationProtocol);
+  protocol = communicationProtocol;
+  if (conectionStatus) {
+    conectionStatus = false;
+  }
 }
