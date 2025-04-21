@@ -298,7 +298,7 @@ String JsonData() {
   }
 
   jsonDoc["Voltage"] = VOLTAGE;
-  jsonDoc["KLineStatus"] = conectionStatus;
+  jsonDoc["vehicleStatus"] = conectionStatus;
   serializeJson(jsonDoc, JSONtxt);
   return JSONtxt;
 }
