@@ -2,16 +2,23 @@
 // PIDs (https://en.wikipedia.org/wiki/OBD-II_PIDs)
 //-------------------------------------------------------------------------------------//
 
+// Modes
+const byte read_LiveData= 0x01;   // Read Troubleshoot Codes
+const byte read_FreezeFrame = 0x02;   // Read Troubleshoot Codes
 const byte read_DTCs = 0x03;   // Read Troubleshoot Codes
 const byte clear_DTCs = 0x04;  // Clear Troubleshoot Codes
+const byte read_VehicleInfo = 0x09;  // Clear Troubleshoot Codes
 
-const byte read_VIN = 0x02;             // Read VIN
-const byte read_ID_Length = 0x03;       // Read Calibration ID Length
-const byte read_ID = 0x04;              // Read Calibration ID
-const byte read_ID_Num_Length = 0x05;   // Read Calibration ID Number Length
-const byte read_ID_Num = 0x06;          // Read Calibration ID Number
+// PIDs for Vehicle Info
+const byte supported_VehicleInfo = 0x00;  // Read Supported Vehicle Info
+const byte read_VIN_Count = 0x01;         // Read VIN Count
+const byte read_VIN = 0x02;               // Read VIN
+const byte read_ID_Length = 0x03;         // Read Calibration ID Length
+const byte read_ID = 0x04;                // Read Calibration ID
+const byte read_ID_Num_Length = 0x05;     // Read Calibration ID Number Length
+const byte read_ID_Num = 0x06;            // Read Calibration ID Number
 
-
+// PIDs for Live Data and Freeze Frame
 const byte SUPPORTED_PIDS_1_20              = 0x00;  // bit encoded
 const byte MONITOR_STATUS_SINCE_DTC_CLEARED = 0x01;  // bit encoded          suported
 const byte FREEZE_DTC                       = 0x02;  //                      suported
