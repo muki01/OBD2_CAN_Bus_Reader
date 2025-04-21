@@ -1,7 +1,11 @@
 import { InitWebSocket, setMessageHandler, sendData } from "./webSocket.js";
 
 const wsStatus = document.getElementById("ws");
-const klStatus = document.getElementById("kl");
+const vehicleStatus = document.getElementById("vehicleStatus");
+const statusBox = document.getElementById("statusBox");
+const status = document.getElementById("status");
+const dataBox = document.getElementById("dataBox");
+const Speed = document.getElementById("Speed");
 const timeRef = document.getElementById("timerDisplay");
 const startBtn = document.getElementById("start-timer");
 const resetBtn = document.getElementById("reset-timer");
@@ -62,9 +66,18 @@ function displayTimer() {
 }
 
 function handleWebSocketMessage(wsMessage) {
-    if (wsMessage) {
-        wsStatus.style.fill = "#00ff00";
-        document.getElementById("Speed").innerHTML = wsMessage.Speed;
+    if (!wsMessage) {
+        wsStatus.style.fill = "red";
+        return;
+    }
+
+    wsStatus.style.fill = "#00ff00";
+    vehicleStatus.style.fill = wsMessage.vehicleStatus ? "#00ff00" : "red";
+
+    if (wsMessage.vehicleStatus == true) {
+        statusBox.style.display = "none";
+        dataBox.style.display = "grid";
+        Speed.innerHTML = wsMessage.Speed;
 
         if (counterEnabled == true && wsMessage.Speed > 0) {
             counterEnabled = false;
@@ -75,10 +88,10 @@ function handleWebSocketMessage(wsMessage) {
             pauseTimer();
             sendData("beep");
         }
-
-        klStatus.style.fill = wsMessage.KLineStatus ? "#00ff00" : "red";
     } else {
-        wsStatus.style.fill = "red";
+        statusBox.style.display = "block";
+        status.innerHTML = "Not Connected to the Vehicle.";
+        dataBox.style.display = "none";
     }
 }
 
