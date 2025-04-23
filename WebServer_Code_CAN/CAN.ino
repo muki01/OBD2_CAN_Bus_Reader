@@ -40,10 +40,44 @@ void obdTask() {
 }
 
 bool init_CAN() {
+  twai_stop();
+  twai_driver_uninstall();
+
   Serial.println("Initializing TWAI...");
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
-  twai_timing_config_t t_config = CAN_SPEED;
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();  // Accept all messages
+  twai_timing_config_t t_config;
+  if (protocol == "11b250") {
+    CAN_BIT = 11;
+    t_config = TWAI_TIMING_CONFIG_250KBITS();
+  } else if (protocol == "11b500") {
+    CAN_BIT = 11;
+    t_config = TWAI_TIMING_CONFIG_500KBITS();
+  } else if (protocol == "29b250") {
+    CAN_BIT = 29;
+    t_config = TWAI_TIMING_CONFIG_250KBITS();
+  } else if (protocol == "29b500") {
+    CAN_BIT = 29;
+    t_config = TWAI_TIMING_CONFIG_500KBITS();
+  }
+
+  else if (protocol == "Automatic") {
+    testedProtocol++;
+    if (testedProtocol == 1) {
+      CAN_BIT = 11;
+      t_config = TWAI_TIMING_CONFIG_250KBITS();
+    } else if (testedProtocol == 2) {
+      CAN_BIT = 11;
+      t_config = TWAI_TIMING_CONFIG_500KBITS();
+    } else if (testedProtocol == 3) {
+      CAN_BIT = 29;
+      t_config = TWAI_TIMING_CONFIG_250KBITS();
+    } else if (testedProtocol == 4) {
+      CAN_BIT = 29;
+      t_config = TWAI_TIMING_CONFIG_500KBITS();
+      testedProtocol = 0;
+    }
+  }
 
   // Install TWAI driver
   if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
@@ -61,6 +95,25 @@ bool init_CAN() {
     Serial.println("Failed to start TWAI!");
     return false;
   }
+}
+
+bool tryToConnect() {
+  init_CAN();
+
+  writeData(0x01, 0x00);
+  if (readData()) {
+    if (protocol == "Automatic") {
+      if (testedProtocol == 1) connectedProtocol = "11b500";
+      else if (testedProtocol == 2) connectedProtocol = "29b250";
+      else if (testedProtocol == 3) connectedProtocol = "29b500";
+      else if (testedProtocol == 4) connectedProtocol = "11b250";
+    } else {
+      connectedProtocol = protocol;
+    }
+
+    return true;
+  }
+  return false;
 }
 
 void writeData(byte mode, byte pid) {

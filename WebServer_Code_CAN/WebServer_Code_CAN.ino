@@ -13,20 +13,20 @@
 #include "PIDs.h"
 #include "driver/twai.h"
 
-#define TX_GPIO_NUM GPIO_NUM_9                   // CAN TX pin
-#define RX_GPIO_NUM GPIO_NUM_10                  // CAN RX pin
-#define CAN_SPEED TWAI_TIMING_CONFIG_500KBITS()  // CAN SPEED 125KBITS, 250KBITS, 500KBITS or 1MBITS
-#define CAN_BIT 29
-
 JsonDocument jsonDoc;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
+int CAN_BIT;
+//#define CAN_SPEED TWAI_TIMING_CONFIG_500KBITS()  // CAN SPEED 125KBITS, 250KBITS, 500KBITS or 1MBITS
+
 #ifdef ESP32
-#define Led 48
-#define Buzzer 6
-#define voltagePin 8
+#define TX_GPIO_NUM GPIO_NUM_0  // CAN TX pin
+#define RX_GPIO_NUM GPIO_NUM_1  // CAN RX pin
+#define Led 8
+#define Buzzer 4
+#define voltagePin 3
 #define DEBUG_Serial
 #elif defined(ESP8266)
 #define K_Serial Serial
@@ -47,11 +47,11 @@ AsyncWebSocket ws("/ws");
 #define debugPrintHex(x) ((void)0)
 #endif
 
-#define WRITE_DELAY 5
+//#define WRITE_DELAY 5
 //int REQUEST_DELAY;
 
 String STA_ssid, STA_password, IP_address, SubnetMask, Gateway, protocol, connectedProtocol = "";
-int page = -1;
+int page = -1, errors = 0, testedProtocol = 0;
 
 int oxygenSensor1Voltage = 0, shortTermFuelTrim1 = 0, oxygenSensor2Voltage = 0, shortTermFuelTrim2 = 0;
 int oxygenSensor3Voltage = 0, shortTermFuelTrim3 = 0, oxygenSensor4Voltage = 0, shortTermFuelTrim4 = 0;
@@ -61,10 +61,9 @@ int oxygenSensor7Voltage = 0, shortTermFuelTrim7 = 0, oxygenSensor8Voltage = 0, 
 double VOLTAGE = 0;
 String Vehicle_VIN = "", Vehicle_ID = "", Vehicle_ID_Num = "";
 
-bool conectionStatus = false, getOnce = false;
-int errors = 0;
+bool conectionStatus = false;
 
-static unsigned long lastReqestTime = 5000, lastWsTime = 100, lastDTCTime = 1000;
+static unsigned long lastWsTime = 100, lastDTCTime = 1000;
 
 void setup() {
 #ifdef DEBUG_Serial
@@ -81,20 +80,26 @@ void setup() {
   initWiFi();
   initWebSocket();
   initWebServer();
-
-  init_CAN();
 }
 
 void loop() {
-  if (getOnce == false) {
-    getOnce = true;
-    digitalWrite(Led, LOW);
-    getSupportedPIDs(0x01);
-    getSupportedPIDs(0x02);
-    getSupportedPIDs(0x09);
-    // getVIN();
-    // getCalibrationID();
-    // getCalibrationIDNum();
+  if (conectionStatus == false) {
+    debugPrintln("Initialising...");
+    Melody3();
+    bool init_success = tryToConnect();
+
+    if (init_success) {
+      debugPrintln("Init Success !!");
+      conectionStatus = true;
+      digitalWrite(Led, LOW);
+      connectMelody();
+      getSupportedPIDs(0x01);
+      getSupportedPIDs(0x02);
+      getSupportedPIDs(0x09);
+      // getVIN();
+      // getCalibrationID();
+      // getCalibrationIDNum();
+    }
   } else {
     obdTask();
   }

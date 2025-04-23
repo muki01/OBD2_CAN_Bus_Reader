@@ -128,8 +128,18 @@ function handleWebSocketMessage(wsMessage) {
     wsStatus.style.fill = "#00ff00";
     vehicleStatus.style.fill = wsMessage.vehicleStatus ? "#00ff00" : "red";
 
+    const protocolMap = {
+        "11b250": "CAN 11Bit 250KBPS",
+        "11b500": "CAN 11Bit 500KBPS",
+        "29b250": "CAN 29Bit 250KBPS",
+        "29b500": "CAN 29Bit 500KBPS",
+        "Automatic": "Automatic"
+    };
+
+    selectedProtocol.innerHTML = protocolMap[wsMessage.selectedProtocol] || "Unknown";
+
     if (!dataReceived1) {
-        selectedProtocol.innerHTML = protocol.value = wsMessage.selectedProtocol;
+        protocol.value = wsMessage.selectedProtocol;
         dataReceived1 = true;
     }
 
@@ -142,9 +152,10 @@ function handleWebSocketMessage(wsMessage) {
     }
 
     if (wsMessage.vehicleStatus && !dataReceived2) {
+        selectPID_Boxes.innerHTML = "";
         selectPID_Status.style.display = "none";
         selectPID_Form.style.display = "block";
-        connectedProtocol.innerHTML = wsMessage.connectedProtocol;
+        connectedProtocol.innerHTML = protocolMap[wsMessage.connectedProtocol];
 
         const supportedLiveData = wsMessage.SupportedLiveData;
         const desiredLiveData = wsMessage.DesiredLiveData;
