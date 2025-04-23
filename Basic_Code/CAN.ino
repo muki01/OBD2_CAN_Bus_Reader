@@ -1,7 +1,7 @@
 twai_message_t lastMessage;
 byte supportedLiveData[32];
 
-void read_CAN() {
+void obdTask() {
   if (digitalRead(BOOT_BUTTON_PIN) == LOW && !buttonPressed) {
     buttonPressed = true;
     Serial.println("BOOT button Clicked");

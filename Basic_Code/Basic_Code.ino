@@ -27,5 +27,5 @@ void setup() {
 }
 
 void loop() {
-  read_CAN();
+  obdTask();
 }

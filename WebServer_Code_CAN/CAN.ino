@@ -5,7 +5,7 @@ byte desiredLiveData[32];
 byte supportedFreezeFrame[32];
 byte supportedVehicleInfo[32];
 
-void read_K() {
+void obdTask() {
   if (page == 1 || page == -1) {
     for (const auto& mapping : liveDataMappings) {
       if (isInArray(desiredLiveData, sizeof(desiredLiveData), mapping.pid)) {

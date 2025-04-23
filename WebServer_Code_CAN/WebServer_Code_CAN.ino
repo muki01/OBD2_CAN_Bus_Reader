@@ -96,7 +96,7 @@ void loop() {
     // getCalibrationID();
     // getCalibrationIDNum();
   } else {
-    read_K();
+    obdTask();
   }
 
   VOLTAGE = (double)analogRead(voltagePin) / 4096.0 * 20.4;
