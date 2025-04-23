@@ -46,9 +46,9 @@ function handleWebSocketMessage(wsMessage) {
             }
         }
     } else {
-        statusBox.style.display = "block";
         dataBox.style.display = "none";
         status.innerHTML = "No errors detected.";
+        statusBox.style.display = "block";
     }
 }
 

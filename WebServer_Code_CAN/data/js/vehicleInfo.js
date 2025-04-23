@@ -18,7 +18,7 @@ function handleWebSocketMessage(wsMessage) {
 
     wsStatus.style.fill = "#00ff00";
     vehicleStatus.style.fill = wsMessage.vehicleStatus ? "#00ff00" : "red";
-    
+
     if (wsMessage.vehicleStatus == false) {
         VIN.innerHTML = "Not Connected to the Vehicle.";
         ID.innerHTML = "Not Connected to the Vehicle.";

@@ -27,9 +27,9 @@ function handleWebSocketMessage(wsMessage) {
         vehicleStatus.innerHTML = "Not Connected";
     }
 
-    if (batteryVoltage >= 12 && batteryVoltage <= 12.6) {
+    if (batteryVoltage >= 12.0 && batteryVoltage <= 12.6) {
         voltage.style.color = "#ffe100";
-    } else if (batteryVoltage < 12) {
+    } else if (batteryVoltage < 12.0) {
         voltage.style.color = "red";
     } else if (batteryVoltage > 12.6) {
         voltage.style.color = "#00ff00";
