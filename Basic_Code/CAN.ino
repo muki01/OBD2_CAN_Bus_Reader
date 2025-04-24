@@ -43,90 +43,6 @@ void init_CAN() {
   }
 }
 
-void getPID(byte pid) {
-  writeData(pid);
-  if (readCAN()) {
-
-    if (lastMessage.data[2] == ENGINE_LOAD) {
-      engineLoadValue = (100.0 / 255) * lastMessage.data[3];
-      Serial.println("Calculated load value: " + String(engineLoadValue));
-    } else if (lastMessage.data[2] == ENGINE_COOLANT_TEMP) {
-      engineCoolantTemp = lastMessage.data[3] - 40;
-      Serial.println("Coolang Temp: " + String(engineCoolantTemp));
-    } else if (lastMessage.data[2] == INTAKE_MANIFOLD_ABS_PRESSURE) {
-      intakeManifoldAbsPressure = lastMessage.data[3];
-      Serial.println("Intake manifold pressure: " + String(intakeManifoldAbsPressure));
-    } else if (lastMessage.data[2] == ENGINE_RPM) {
-      engineRpmValue = (256 * lastMessage.data[3] + lastMessage.data[4]) / 4;
-      Serial.println("Engine RPM: " + String(engineRpmValue));
-    } else if (lastMessage.data[2] == VEHICLE_SPEED) {
-      vehicleSpeedValue = lastMessage.data[3];
-      Serial.println("Speed: " + String(vehicleSpeedValue));
-    } else if (lastMessage.data[2] == INTAKE_AIR_TEMP) {
-      intakeAirTempValue = lastMessage.data[3] - 40;
-      Serial.println("Intake Temp: " + String(intakeAirTempValue));
-    } else if (lastMessage.data[2] == SUPPORTED_PIDS_1_20) {
-      int pidIndex = 0;
-      int supportedCount = 0;
-
-      for (int i = 3; i <= 6; i++) {
-        byte value = lastMessage.data[i];
-        for (int bit = 7; bit >= 0; bit--) {
-          if ((value >> bit) & 1) {
-            supportedLiveData[supportedCount++] = pidIndex + 1;
-          }
-          pidIndex++;
-        }
-      }
-
-      if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_21_40)) {
-        writeData(SUPPORTED_PIDS_21_40);
-        readCAN();
-
-        for (int i = 3; i < 6; i++) {
-          byte value = lastMessage.data[i];
-          for (int bit = 7; bit >= 0; bit--) {
-            if ((value >> bit) & 1) {
-              supportedLiveData[supportedCount++] = pidIndex + 1;
-            }
-            pidIndex++;
-          }
-        }
-      }
-
-      if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_41_60)) {
-        writeData(SUPPORTED_PIDS_41_60);
-        readCAN();
-
-        for (int i = 3; i < 6; i++) {
-          byte value = lastMessage.data[i];
-          for (int bit = 7; bit >= 0; bit--) {
-            if ((value >> bit) & 1) {
-              supportedLiveData[supportedCount++] = pidIndex + 1;
-            }
-            pidIndex++;
-          }
-        }
-      }
-
-      Serial.print("Supported Live Data: ");
-      for (int i = 0; i < supportedCount; i++) {
-        if (supportedLiveData[i] < 10) {
-          Serial.print("0");
-          Serial.print(supportedLiveData[i], HEX);
-        } else {
-          Serial.print(supportedLiveData[i], HEX);
-        }
-
-        if (i < supportedCount - 1) {
-          Serial.print(" ");
-        }
-      }
-      Serial.println();
-    }
-  }
-}
-
 void writeData(byte mode, byte pid) {
   Serial.println("Writing Data");
   twai_message_t message;
@@ -198,6 +114,28 @@ bool readCAN() {
   }
   Serial.println("OBD2 Timeout!");
   return false;
+}
+
+void getPID(byte pid) {
+  writeData(read_LiveData, pid);
+  if (readCAN()) {
+
+    if (resultBuffer.data[2] == ENGINE_LOAD) {
+      engineLoadValue = (100.0 / 255) * resultBuffer.data[3];
+    } else if (resultBuffer.data[2] == ENGINE_COOLANT_TEMP) {
+      engineCoolantTemp = resultBuffer.data[3] - 40;
+    } else if (resultBuffer.data[2] == INTAKE_MANIFOLD_ABS_PRESSURE) {
+      intakeManifoldAbsPressure = resultBuffer.data[3];
+    } else if (resultBuffer.data[2] == ENGINE_RPM) {
+      engineRpmValue = (256 * resultBuffer.data[3] + resultBuffer.data[4]) / 4;
+    } else if (resultBuffer.data[2] == VEHICLE_SPEED) {
+      vehicleSpeedValue = resultBuffer.data[3];
+    } else if (resultBuffer.data[2] == INTAKE_AIR_TEMP) {
+      intakeAirTempValue = resultBuffer.data[3] - 40;
+    }
+  }
+}
+
 void get_DTCs() {
   // Request: C2 33 F1 03 F3
   // example Response: 87 F1 11 43 01 70 01 34 00 00 72
