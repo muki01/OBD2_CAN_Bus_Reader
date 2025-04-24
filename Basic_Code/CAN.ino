@@ -237,4 +237,101 @@ String decodeDTC(char input_byte1, char input_byte2) {
 void clear_DTC() {
   writeData(clear_DTCs, 0x00);
 }
+
+void getSupportedPIDs(const byte option) {
+  int pidIndex = 0;
+  int supportedCount = 0;
+
+  if (option == 0x01) {
+    writeData(option, SUPPORTED_PIDS_1_20);
+
+    if (readCAN()) {
+      for (int i = 3; i < 7; i++) {
+        byte value = resultBuffer.data[i];
+        for (int bit = 7; bit >= 0; bit--) {
+          if ((value >> bit) & 1) {
+            supportedLiveData[supportedCount++] = pidIndex + 1;
+          }
+          pidIndex++;
+        }
+      }
+
+      if (isInArray(supportedLiveData, sizeof(supportedLiveData), 0x20)) {
+        writeData(option, SUPPORTED_PIDS_21_40);
+        if (readCAN()) {
+
+          for (int i = 3; i < 7; i++) {
+            byte value = resultBuffer.data[i];
+            for (int bit = 7; bit >= 0; bit--) {
+              if ((value >> bit) & 1) {
+                supportedLiveData[supportedCount++] = pidIndex + 1;
+              }
+              pidIndex++;
+            }
+          }
+        }
+      }
+
+      if (isInArray(supportedLiveData, sizeof(supportedLiveData), 0x40)) {
+        writeData(option, SUPPORTED_PIDS_41_60);
+        if (readCAN()) {
+
+          for (int i = 3; i < 7; i++) {
+            byte value = resultBuffer.data[i];
+            for (int bit = 7; bit >= 0; bit--) {
+              if ((value >> bit) & 1) {
+                supportedLiveData[supportedCount++] = pidIndex + 1;
+              }
+              pidIndex++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (option == 0x02) {
+    writeData(option, SUPPORTED_PIDS_1_20);
+
+    if (readCAN()) {
+      for (int i = 4; i < 8; i++) {
+        byte value = resultBuffer.data[i];
+        for (int bit = 7; bit >= 0; bit--) {
+          if ((value >> bit) & 1) {
+            supportedFreezeFrame[supportedCount++] = pidIndex + 1;
+          }
+          pidIndex++;
+        }
+      }
+    }
+  }
+  if (option == 0x09) {
+    writeData(option, supported_VehicleInfo);
+
+    if (readCAN()) {
+      for (int i = 4; i < 8; i++) {
+        byte value = resultBuffer.data[i];
+        for (int bit = 7; bit >= 0; bit--) {
+          if ((value >> bit) & 1) {
+            supportedVehicleInfo[supportedCount++] = pidIndex + 1;
+          }
+          pidIndex++;
+        }
+      }
+      Serial.print("Supported Live Data: ");
+      for (int i = 0; i < supportedCount; i++) {
+        if (supportedLiveData[i] < 10) {
+          Serial.print("0");
+          Serial.print(supportedLiveData[i], HEX);
+        } else {
+          Serial.print(supportedLiveData[i], HEX);
+        }
+
+        if (i < supportedCount - 1) {
+          Serial.print(" ");
+        }
+      }
+      Serial.println();
+    }
+  }
 }
