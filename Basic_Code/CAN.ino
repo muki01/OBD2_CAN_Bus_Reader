@@ -1,5 +1,8 @@
 twai_message_t resultBuffer;
 byte supportedLiveData[32];
+byte supportedFreezeFrame[32];
+byte supportedVehicleInfo[32];
+String dtcBuffer[32];
 
 void obdTask() {
   if (digitalRead(BOOT_BUTTON_PIN) == LOW && !buttonPressed) {
