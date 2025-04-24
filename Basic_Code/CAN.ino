@@ -74,38 +74,40 @@ void writeData(byte mode, byte pid) {
 }
 
 bool readCAN() {
+  Serial.println("Reading...");
   twai_message_t response;
   unsigned long start_time = millis();
 
   while (millis() - start_time < 2000) {
     if (twai_receive(&response, pdMS_TO_TICKS(2000)) == ESP_OK) {
-      if (response.identifier == 0x18DAF110 || response.identifier == 0x7E8) {
-        if (memcmp(&lastMessage, &response, sizeof(twai_message_t)) != 0) {
-          memcpy(&lastMessage, &response, sizeof(twai_message_t));
+      if (response.identifier == 0x18DAF110 || response.identifier == 0x18DAF111 || response.identifier == 0x7E8) {
+        if (memcmp(&resultBuffer, &response, sizeof(twai_message_t)) != 0) {
+          memcpy(&resultBuffer, &response, sizeof(twai_message_t));
         }
 
-        // Serial.print("ID: 0x");
-        // Serial.print(response.identifier, HEX);
-        // Serial.print(", RTR: ");
-        // Serial.print(response.rtr, HEX);
-        // Serial.print(", EID: ");
-        // Serial.print(response.extd, HEX);
-        // Serial.print(", (DLC): ");
-        // Serial.print(response.data_length_code);
-        // Serial.print(", Data: ");
-        // for (int i = 0; i < response.data_length_code; i++) {
-        //   if (response.data[i] < 10) {
-        //     Serial.print("0");
-        //     Serial.print(response.data[i], HEX);
-        //   } else {
-        //     Serial.print(response.data[i], HEX);
-        //   }
+        Serial.print("Received Data: ");
+        Serial.print("ID: 0x");
+        Serial.print(response.identifier, HEX);
+        Serial.print(", RTR: ");
+        Serial.print(response.rtr, HEX);
+        Serial.print(", EID: ");
+        Serial.print(response.extd, HEX);
+        Serial.print(", (DLC): ");
+        Serial.print(response.data_length_code);
+        Serial.print(", Data: ");
+        for (int i = 0; i < response.data_length_code; i++) {
+          if (response.data[i] < 10) {
+            Serial.print("0");
+            Serial.print(response.data[i], HEX);
+          } else {
+            Serial.print(response.data[i], HEX);
+          }
 
-        //   if (i < response.data_length_code - 1) {
-        //     Serial.print(" ");
-        //   }
-        // }
-        // Serial.println();
+          if (i < response.data_length_code - 1) {
+            Serial.print(" ");
+          }
+        }
+        Serial.println();
         return true;
       }
     } else {
