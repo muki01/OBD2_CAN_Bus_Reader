@@ -8,7 +8,8 @@ void obdTask() {
   if (digitalRead(BOOT_BUTTON_PIN) == LOW && !buttonPressed) {
     buttonPressed = true;
     Serial.println("BOOT button Clicked");
-    getPID(SUPPORTED_PIDS_1_20);
+    //getPID(SUPPORTED_PIDS_1_20);
+    //getSupportedPIDs(0x09);
   }
 
   if (digitalRead(BOOT_BUTTON_PIN) == HIGH) {
@@ -16,11 +17,17 @@ void obdTask() {
   }
 
   getPID(ENGINE_LOAD);
+  Serial.println("Calculated load value: " + String(engineLoadValue));
   getPID(ENGINE_COOLANT_TEMP);
+  Serial.println("Coolang Temp: " + String(engineCoolantTemp));
   getPID(INTAKE_MANIFOLD_ABS_PRESSURE);
+  Serial.println("Intake manifold pressure: " + String(intakeManifoldAbsPressure));
   getPID(ENGINE_RPM);
+  Serial.println("Engine RPM: " + String(engineRpmValue));
   getPID(VEHICLE_SPEED);
+  Serial.println("Speed: " + String(vehicleSpeedValue));
   getPID(INTAKE_AIR_TEMP);
+  Serial.println("Intake Temp: " + String(intakeAirTempValue));
 }
 
 void init_CAN() {
