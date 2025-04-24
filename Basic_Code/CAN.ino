@@ -233,4 +233,8 @@ String decodeDTC(char input_byte1, char input_byte2) {
 
   return ErrorCode;
 }
+
+void clear_DTC() {
+  writeData(clear_DTCs, 0x00);
+}
 }
