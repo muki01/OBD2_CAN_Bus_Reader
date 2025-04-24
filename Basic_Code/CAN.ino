@@ -127,7 +127,8 @@ void getPID(byte pid) {
   }
 }
 
-void writeData(byte pid) {
+void writeData(byte mode, byte pid) {
+  Serial.println("Writing Data");
   twai_message_t message;
 
   if (CAN_BIT == 29) {
@@ -141,7 +142,7 @@ void writeData(byte pid) {
   message.rtr = 0;               // Data frame
   message.data_length_code = 8;  // 8-byte data frame
   message.data[0] = 0x02;        // Query length (2 bytes: Mode and PID)
-  message.data[1] = 0x01;        // Mode 01: Request current data
+  message.data[1] = mode;        // Mode 01: Request current data
   message.data[2] = pid;         // PID
   message.data[3] = 0x00;        // Padding bytes
   message.data[4] = 0x00;
