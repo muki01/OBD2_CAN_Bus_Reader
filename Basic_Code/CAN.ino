@@ -1,4 +1,4 @@
-twai_message_t lastMessage;
+twai_message_t resultBuffer;
 byte supportedLiveData[32];
 
 void obdTask() {
@@ -197,4 +197,26 @@ bool readCAN() {
   }
   Serial.println("OBD2 Timeout!");
   return false;
+void get_DTCs() {
+  // Request: C2 33 F1 03 F3
+  // example Response: 87 F1 11 43 01 70 01 34 00 00 72
+  int dtcs = 0;
+  char dtcBytes[2];
+
+  writeData(read_DTCs, 0x00);
+  readCAN();
+
+  int length = sizeof(resultBuffer.data);
+  for (int i = 0; i < length; i++) {
+    dtcBytes[0] = resultBuffer.data[3 + i * 2];
+    dtcBytes[1] = resultBuffer.data[3 + i * 2 + 1];
+
+    if (dtcBytes[0] == 0 && dtcBytes[1] == 0) {
+      break;
+    } else {
+      String ErrorCode = decodeDTC(dtcBytes[0], dtcBytes[1]);
+      dtcBuffer[dtcs++] = ErrorCode;
+    }
+  }
+}
 }
