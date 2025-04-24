@@ -219,4 +219,18 @@ void get_DTCs() {
     }
   }
 }
+
+String decodeDTC(char input_byte1, char input_byte2) {
+  String ErrorCode = "";
+  const static char type_lookup[4] = { 'P', 'C', 'B', 'U' };
+  const static char digit_lookup[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+  ErrorCode += type_lookup[(input_byte1 >> 6) & 0b11];
+  ErrorCode += digit_lookup[(input_byte1 >> 4) & 0b11];
+  ErrorCode += digit_lookup[input_byte1 & 0b1111];
+  ErrorCode += digit_lookup[input_byte2 >> 4];
+  ErrorCode += digit_lookup[input_byte2 & 0b1111];
+
+  return ErrorCode;
+}
 }
