@@ -1,13 +1,7 @@
-#ifdef ESP32
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <SPIFFS.h>
 #include <Update.h>
-#elif defined(ESP8266)
-#include <ESP8266WiFi.h>
-#include <ESPAsyncTCP.h>
-#include <FS.h>
-#endif
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "PIDs.h"
@@ -21,21 +15,12 @@ AsyncWebSocket ws("/ws");
 int CAN_BIT;
 //#define CAN_SPEED TWAI_TIMING_CONFIG_500KBITS()  // CAN SPEED 125KBITS, 250KBITS, 500KBITS or 1MBITS
 
-#ifdef ESP32
 #define TX_GPIO_NUM GPIO_NUM_0  // CAN TX pin
 #define RX_GPIO_NUM GPIO_NUM_1  // CAN RX pin
 #define Led 8
 #define Buzzer 4
 #define voltagePin 3
 #define DEBUG_Serial
-#elif defined(ESP8266)
-#define K_Serial Serial
-#define K_line_RX 3
-#define K_line_TX 1
-#define Led 2
-#define Buzzer 4
-#define voltagePin 5
-#endif
 
 #ifdef DEBUG_Serial
 #define debugPrint(x) Serial.print(x)
