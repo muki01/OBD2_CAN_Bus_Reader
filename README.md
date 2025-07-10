@@ -1,5 +1,11 @@
 # 🚗OBD2 CAN_BUS Reader
 
+![GitHub forks](https://img.shields.io/github/forks/muki01/OBD2_CAN_Bus_Reader?style=flat)
+![GitHub Repo stars](https://img.shields.io/github/stars/muki01/OBD2_CAN_Bus_Reader?style=flat)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/muki01/OBD2_CAN_Bus_Reader?style=flat)
+![GitHub License](https://img.shields.io/github/license/muki01/OBD2_CAN_Bus_Reader?style=flat)
+![GitHub last commit](https://img.shields.io/github/last-commit/muki01/OBD2_CAN_Bus_Reader)
+
 This code allows you to interface with the CAN Bus in vehicles. It enables you to read sensor values, diagnose trouble codes, and more. It supports various baud rates (125KBPS, 250KBPS, 500KBPS, 1MBPS) and both 11-bit and 29-bit CAN identifiers.
 
 I will share schematics to communicate with the car. You can use these schematics. I am currently testing this code with ESP32 S3. For now it will only work with ESP32 boards, I will do it for other boards in the future.
@@ -31,5 +37,3 @@ You can also see my other car projects:
 
 ## 🛠️Schematics for communication
 <img src="https://github.com/user-attachments/assets/3fdc245d-841e-4733-b52c-21789ddfdf5e" width=70%>
-
-## The device I made with ESP32 S3 SuperMini.
