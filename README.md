@@ -41,3 +41,17 @@ You can also see my other car projects:
 
 ## 🛠️Schematics for communication
 <img src="https://github.com/user-attachments/assets/3fdc245d-841e-4733-b52c-21789ddfdf5e" width=70%>
+
+---
+
+## ☕ Support My Work
+
+If you enjoy my projects and want to support me, you can do so through the links below:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/-Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/muki01)
+[![PayPal](https://img.shields.io/badge/-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=SAAH5GHAH6T72)
+[![GitHub Sponsors](https://img.shields.io/badge/-Sponsor%20Me%20on%20GitHub-181717?style=for-the-badge&logo=github)](https://github.com/sponsors/muki01)
+
+📧 **Contact:** `muksin.muksin04@gmail.com`
+
+---
