@@ -2,12 +2,25 @@
 // PIDs (https://en.wikipedia.org/wiki/OBD-II_PIDs)
 //-------------------------------------------------------------------------------------//
 
+typedef struct {
+  uint32_t id;
+  uint32_t rtr;
+  uint32_t ide;
+  uint8_t length;
+  uint8_t data[8];
+} canMessage;
+
 // Modes
-const byte read_LiveData= 0x01;   // Read Troubleshoot Codes
-const byte read_FreezeFrame = 0x02;   // Read Troubleshoot Codes
-const byte read_DTCs = 0x03;   // Read Troubleshoot Codes
-const byte clear_DTCs = 0x04;  // Clear Troubleshoot Codes
-const byte read_VehicleInfo = 0x09;  // Clear Troubleshoot Codes
+const byte read_LiveData = 0x01;              // Show current live data
+const byte read_FreezeFrame = 0x02;           // Show freeze frame data
+const byte read_storedDTCs = 0x03;            // Show stored Diagnostic Trouble Codes (DTCs)
+const byte clear_DTCs = 0x04;                 // Clear Diagnostic Trouble Codes and stored values
+const byte test_OxygenSensors = 0x05;         // Test results, oxygen sensor monitoring (non-CAN only)
+const byte test_OtherComponents = 0x06;       // Test results, other component/system monitoring (for CAN)
+const byte read_pendingDTCs = 0x07;           // Show pending Diagnostic Trouble Codes
+const byte control_OnBoardComponents = 0x08;  // Control operation of on-board component/system
+const byte read_VehicleInfo = 0x09;           // Request vehicle information
+const byte read_PermanentDTCs = 0x0A;         // Show permanent Diagnostic Trouble Codes
 
 // PIDs for Vehicle Info
 const byte supported_VehicleInfo = 0x00;  // Read Supported Vehicle Info
@@ -55,7 +68,7 @@ const byte RUN_TIME_SINCE_ENGINE_START      = 0x1F;  // sec
 const byte SUPPORTED_PIDS_21_40             = 0x20;  // bit encoded
 const byte DISTANCE_TRAVELED_WITH_MIL_ON    = 0x21;  // km           suported
 const byte FUEL_RAIL_PRESSURE               = 0x22;  // kPa
-const byte FUEL_RAIL_GUAGE_PRESSURE         = 0x23;  // kPa
+const byte FUEL_RAIL_GAUGE_PRESSURE         = 0x23;  // kPa
 const byte OXYGEN_SENSOR_1_B                = 0x24;  // ratio V
 const byte OXYGEN_SENSOR_2_B                = 0x25;  // ratio V
 const byte OXYGEN_SENSOR_3_B                = 0x26;  // ratio V
@@ -68,10 +81,10 @@ const byte COMMANDED_EGR                    = 0x2C;  // %
 const byte EGR_ERROR                        = 0x2D;  // %
 const byte COMMANDED_EVAPORATIVE_PURGE      = 0x2E;  // %
 const byte FUEL_TANK_LEVEL_INPUT            = 0x2F;  // %
-const byte WARM_UPS_SINCE_CODES_CLEARED     = 0x30;  // count
-const byte DIST_TRAV_SINCE_CODES_CLEARED    = 0x31;  // km
-const byte EVAP_SYSTEM_VAPOR_PRESSURE       = 0x32;  // Pa
-const byte ABS_BAROMETRIC_PRESSURE          = 0x33;  // kPa
+const byte WARMUPS_SINCE_CODES_CLEARED      = 0x30;  // count
+const byte DISTANCE_TRAVELED_SINCE_CODES_CLEARED= 0x31;  // km
+const byte EVAPORATION_SYSTEM_VAPOR_PRESSURE= 0x32;  // Pa
+const byte ABSOLUTE_BAROMETRIC_PRESSURE     = 0x33;  // kPa
 const byte OXYGEN_SENSOR_1_C                = 0x34;  // ratio mA
 const byte OXYGEN_SENSOR_2_C                = 0x35;  // ratio mA
 const byte OXYGEN_SENSOR_3_C                = 0x36;  // ratio mA
@@ -124,3 +137,5 @@ const byte ACTUAL_ENGINE_TORQUE             = 0x62;  // %
 const byte ENGINE_REFERENCE_TORQUE          = 0x63;  // Nm
 const byte ENGINE_PERCENT_TORQUE_DATA       = 0x64;  // %
 const byte AUX_INPUT_OUTPUT_SUPPORTED       = 0x65;  // bit encoded
+
+const byte SUPPORTED_PIDS_81_100 = 0x80;            // bit encoded

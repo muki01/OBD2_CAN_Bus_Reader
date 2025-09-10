@@ -1,123 +1,205 @@
 twai_message_t resultBuffer;
-String dtcBuffer[32];
+String storedDTCBuffer[32];
+String pendingDTCBuffer[32];
 byte supportedLiveData[32];
 byte desiredLiveData[32];
 byte supportedFreezeFrame[32];
+byte supportedOxygenSensor[32];
+byte supportedOtherComponents[32];
+byte supportedControlComponents[32];
 byte supportedVehicleInfo[32];
 
+
 void obdTask() {
-  if (page == 1 || page == -1) {
-    for (const auto& mapping : liveDataMappings) {
-      if (isInArray(desiredLiveData, sizeof(desiredLiveData), mapping.pid)) {
-        getPID(mapping.pid);
-      }
-    }
-    if (page == -1) {
-      get_DTCs();
-    }
-  } else if (page == 0 || page == 2 || page == 5 || page == 6) {
+  if (clearDTC_Flag == true) {
+    debugPrintln("Clearing DTCs");
+    clearDTCs();
+    clearDTC_Flag = false;
+  }
+  //Check DTCs in page -1, 0, 2, 3, 5, 6
+  if (page == -1 || page == 0 || page == 2 || page == 3 || page == 5 || page == 6) {
     if (millis() - lastDTCTime >= 1000) {
-      get_DTCs();
-      if (page == 2) {
-        if (isInArray(supportedLiveData, sizeof(supportedLiveData), DISTANCE_TRAVELED_WITH_MIL_ON)) {
-          getPID(DISTANCE_TRAVELED_WITH_MIL_ON);
-        }
-      }
+      readDTCs(read_storedDTCs);
       lastDTCTime = millis();
     }
-  } else if (page == 3) {
-    get_DTCs();
-    for (const auto& mapping : freezeFrameMappings) {
-      if (isInArray(supportedFreezeFrame, sizeof(supportedFreezeFrame), mapping.pid)) {
-        getPID(mapping.pid);
+  }
+  //Get Desired LiveData in page -1 and 1
+  if (page == -1 || page == 1) {
+    for (const auto& mapping : liveDataMappings) {
+      if (connectionStatus == false) {
+        return;
+      }
+      if (isInArray(desiredLiveData, sizeof(desiredLiveData), mapping.pid)) {
+        getPID(read_LiveData, mapping.pid);
       }
     }
-  } else if (page == 4) {
+  }
+  //Get DISTANCE_TRAVELED_WITH_MIL_ON in page 2 if is in supportedLiveData and DTCs detected
+  else if (page == 2) {
+    if (storedDTCBuffer[0] != "") {
+      if (isInArray(supportedLiveData, sizeof(supportedLiveData), DISTANCE_TRAVELED_WITH_MIL_ON)) {
+        getPID(read_LiveData, DISTANCE_TRAVELED_WITH_MIL_ON);
+      }
+    }
+  }
+  //Get All FreezeFrame values in page 3 if detected DTCs
+  else if (page == 3) {
+    if (storedDTCBuffer[0] != "") {
+      for (const auto& mapping : freezeFrameMappings) {
+        if (connectionStatus == false) {
+          return;
+        }
+        if (isInArray(supportedFreezeFrame, sizeof(supportedFreezeFrame), mapping.pid)) {
+          getPID(read_FreezeFrame, mapping.pid);
+        }
+      }
+    }
+  }
+  //Get Speed data in page 4
+  else if (page == 4) {
     if (isInArray(supportedLiveData, sizeof(supportedLiveData), VEHICLE_SPEED)) {
-      getPID(VEHICLE_SPEED);
+      getPID(read_LiveData, VEHICLE_SPEED);
     }
   }
+  //Get VIN, ID, ID_Num data in page 5
+  // else if (page == 5) {
+  //   if (isInArray(supportedVehicleInfo, sizeof(supportedVehicleInfo), read_VIN)) {
+  //     Vehicle_VIN = getVehicleInfo(read_VIN);
+  //   }
+  //   if (isInArray(supportedVehicleInfo, sizeof(supportedVehicleInfo), read_ID)) {
+  //     Vehicle_ID = getVehicleInfo(read_ID);
+  //   }
+  //   if (isInArray(supportedVehicleInfo, sizeof(supportedVehicleInfo), read_ID_Num)) {
+  //     Vehicle_ID_Num = getVehicleInfo(read_ID_Num);
+  //   }
+  // }
 }
 
-bool init_CAN() {
-  twai_stop();
-  twai_driver_uninstall();
+bool initOBD2() {
+  if (connectionStatus) return true;
 
-  Serial.println("Initializing TWAI...");
-  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
-  twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();  // Accept all messages
-  twai_timing_config_t t_config;
-  if (protocol == "11b250") {
-    CAN_BIT = 11;
-    t_config = TWAI_TIMING_CONFIG_250KBITS();
-  } else if (protocol == "11b500") {
-    CAN_BIT = 11;
-    t_config = TWAI_TIMING_CONFIG_500KBITS();
-  } else if (protocol == "29b250") {
-    CAN_BIT = 29;
-    t_config = TWAI_TIMING_CONFIG_250KBITS();
-  } else if (protocol == "29b500") {
-    CAN_BIT = 29;
-    t_config = TWAI_TIMING_CONFIG_500KBITS();
-  }
+  debugPrintln(F("Initializing OBD2..."));
+  struct ProtocolOption {
+    const char* name;
+    uint8_t bit;
+    twai_timing_config_t speed;
+  };
 
-  else if (protocol == "Automatic") {
-    testedProtocol++;
-    if (testedProtocol == 1) {
-      CAN_BIT = 11;
-      t_config = TWAI_TIMING_CONFIG_250KBITS();
-    } else if (testedProtocol == 2) {
-      CAN_BIT = 11;
-      t_config = TWAI_TIMING_CONFIG_500KBITS();
-    } else if (testedProtocol == 3) {
-      CAN_BIT = 29;
-      t_config = TWAI_TIMING_CONFIG_250KBITS();
-    } else if (testedProtocol == 4) {
-      CAN_BIT = 29;
-      t_config = TWAI_TIMING_CONFIG_500KBITS();
-      testedProtocol = 0;
+  ProtocolOption options[] = { { "11b250", 11, TWAI_TIMING_CONFIG_250KBITS() },
+                               { "29b250", 29, TWAI_TIMING_CONFIG_250KBITS() },
+                               { "11b500", 11, TWAI_TIMING_CONFIG_500KBITS() },
+                               { "29b500", 29, TWAI_TIMING_CONFIG_500KBITS() } };
+
+  for (auto& opt : options) {
+    if (selectedProtocol == opt.name || selectedProtocol == "Automatic") {
+      CAN_BIT = opt.bit;
+      CAN_SPEED = opt.speed;
+      debugPrint(F("Trying protocol: "));
+      debugPrintln(opt.name);
+      if (testConnection()) {
+        connectionStatus = true;
+        connectedProtocol = opt.name;
+        debugPrintln(F("✅ OBD2 connection established with protocol: "));
+        debugPrintln(opt.name);
+        debugPrintln(F(""));
+        return true;
+      } else {
+        debugPrint(F("❌ Failed to connect with protocol: "));
+        debugPrintln(opt.name);
+        debugPrintln(F(""));
+      }
     }
   }
 
-  // Install TWAI driver
-  if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
-    Serial.println("TWAI driver installed.");
-  } else {
-    Serial.println("Failed to install TWAI driver!");
-    return false;
-  }
-
-  // Start TWAI
-  if (twai_start() == ESP_OK) {
-    Serial.println("TWAI started.");
-    return true;
-  } else {
-    Serial.println("Failed to start TWAI!");
-    return false;
-  }
+  return false;
 }
 
-bool tryToConnect() {
-  init_CAN();
-
-  writeData(0x01, 0x00);
-  if (readData()) {
-    if (protocol == "Automatic") {
-      if (testedProtocol == 1) connectedProtocol = "11b500";
-      else if (testedProtocol == 2) connectedProtocol = "29b250";
-      else if (testedProtocol == 3) connectedProtocol = "29b500";
-      else if (testedProtocol == 4) connectedProtocol = "11b250";
-    } else {
-      connectedProtocol = protocol;
+bool testConnection() {
+  if (initTWAI()) {
+    if (writeData(0x01, 0x00)) {
+      if (readData() > 0) {
+        return true;
+      }
     }
-
-    return true;
+    stopTWAI();
   }
   return false;
 }
 
-void writeData(byte mode, byte pid) {
+bool initTWAI() {
+  debugPrintln(F("Setting up TWAI interface..."));
+
+  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)CAN_txPin, (gpio_num_t)CAN_rxPin, TWAI_MODE_NORMAL);
+  twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+  twai_timing_config_t t_config = CAN_SPEED;
+  g_config.rx_queue_len = 60;  // Received messages queue size
+  g_config.tx_queue_len = 10;  // Transmit messages queue size
+
+  if (twai_driver_install(&g_config, &t_config, &f_config) != ESP_OK) {
+    debugPrintln(F("❌ Driver installation failed."));
+    return false;
+  }
+
+  if (twai_start() != ESP_OK) {
+    debugPrintln(F("❌ TWAI start failed."));
+    return false;
+  }
+
+  debugPrintln(F("✅ TWAI successfully initialized."));
+  return true;
+}
+
+void stopTWAI() {
+  debugPrintln(F("Stopping TWAI..."));
+  twai_stop();
+  twai_driver_uninstall();
+}
+
+bool writeRawData(canMessage msg) {
+  debugPrintln(F("Sending Raw Data: "));
   twai_message_t message;
+
+  message.identifier = msg.id;
+  message.rtr = msg.rtr;
+  message.extd = msg.ide;
+  message.data_length_code = msg.length;
+  memcpy(message.data, msg.data, msg.length);
+
+  debugPrint(F("ID: 0x"));
+  debugPrintHex(message.identifier);
+  debugPrint(F(" RTR: "));
+  debugPrintHex(message.rtr);
+  debugPrint(F(" IDE: "));
+  debugPrintHex(message.extd);
+  // debugPrint(F(" Length: "));
+  // debugPrint(message.data_length_code);
+  debugPrint(F(" Data: "));
+  for (int i = 0; i < message.data_length_code; i++) {
+    debugPrintHex(message.data[i]);
+    debugPrint(F(" "));
+  }
+  debugPrintln(F(""));
+
+  if (twai_transmit(&message, pdMS_TO_TICKS(1000)) == ESP_OK) {
+    // debugPrintln(F("✅ CAN message sent successfully."));
+    return true;
+  } else {
+    debugPrintln(F("❌ Error sending CAN message!"));
+    return false;
+  }
+}
+
+bool writeData(uint8_t mode, uint8_t pid) {
+  twai_message_t message;
+  uint8_t quearyLength = 0x02;  // Default query length
+
+  if (mode == read_storedDTCs || mode == read_pendingDTCs || mode == clear_DTCs) {
+    quearyLength = 0x01;
+  } else if (mode == read_FreezeFrame || mode == test_OxygenSensors) {
+    quearyLength = 0x03;
+  } else {
+    quearyLength = 0x02;
+  }
 
   if (CAN_BIT == 29) {
     message.identifier = 0x18DB33F1;
@@ -125,563 +207,417 @@ void writeData(byte mode, byte pid) {
   } else if (CAN_BIT == 11) {
     message.identifier = 0x7DF;
     message.extd = 0;
+  } else {
+    debugPrintln(F("Unsupported CAN_BIT value!"));
+    return false;
   }
 
-  message.rtr = 0;               // Data frame
-  message.data_length_code = 8;  // 8-byte data frame
-  if (mode == read_FreezeFrame) {
-    message.data[0] = 0x03;
-  } else if (mode == read_DTCs || mode == clear_DTCs) {
-    message.data[0] = 0x01;
-  } else {
-    message.data[0] = 0x02;  // Query length (2 bytes: Mode and PID)
-  }
-  message.data[1] = mode;  // Mode 01: Request current data
-  message.data[2] = pid;   // PID
-  message.data[3] = 0x00;  // Padding bytes
+  message.rtr = 0;                 // Data frame
+  message.data_length_code = 8;    // 8_byte data frame
+  message.data[0] = quearyLength;  // Query length
+  message.data[1] = mode;          // Mode
+  message.data[2] = pid;           // PID
+  message.data[3] = 0x00;          // Parameter
   message.data[4] = 0x00;
   message.data[5] = 0x00;
   message.data[6] = 0x00;
   message.data[7] = 0x00;
 
+  debugPrint(F("Sending Data: ID: 0x"));
+  debugPrintHex(message.identifier);
+  // debugPrint(F(" RTR: "));
+  // debugPrintHex(message.rtr);
+  // debugPrint(F(" IDE: "));
+  // debugPrintHex(message.extd);
+  // debugPrint(F(" Length: "));
+  // debugPrint(message.data_length_code);
+  debugPrint(F(" Data: "));
+  for (int i = 0; i < message.data_length_code; i++) {
+    debugPrintHex(message.data[i]);
+    debugPrint(F(" "));
+  }
+  debugPrintln(F(""));
+
   if (twai_transmit(&message, pdMS_TO_TICKS(1000)) == ESP_OK) {
-    Serial.println("Query sent.");
+    // debugPrintln(F("✅ CAN message sent successfully."));
+    return true;
   } else {
-    Serial.println("Failed to send query!");
+    debugPrintln(F("❌ Error sending CAN message!"));
+    return false;
   }
 }
 
-bool readData() {
+uint8_t readData() {
   twai_message_t response;
   unsigned long start_time = millis();
 
   while (millis() - start_time < 500) {
     if (twai_receive(&response, pdMS_TO_TICKS(500)) == ESP_OK) {
       if (response.identifier == 0x18DAF110 || response.identifier == 0x18DAF111 || response.identifier == 0x7E8) {
-        errors = 0;
+        unreceivedDataCount = 0;
         if (memcmp(&resultBuffer, &response, sizeof(twai_message_t)) != 0) {
           memcpy(&resultBuffer, &response, sizeof(twai_message_t));
         }
 
-        Serial.print("Received Data: ID: 0x");
-        Serial.print(response.identifier, HEX);
-        Serial.print(", RTR: ");
-        Serial.print(response.rtr, HEX);
-        Serial.print(", EID: ");
-        Serial.print(response.extd, HEX);
-        Serial.print(", (DLC): ");
-        Serial.print(response.data_length_code);
-        Serial.print(", Data: ");
+        debugPrint(F("Received Data: ID: 0x"));
+        debugPrintHex(response.identifier);
+        // debugPrint(F(", RTR: "));
+        // debugPrintHex(response.rtr, HEX);
+        // debugPrint(F(", EID: "));
+        // debugPrintHex(response.extd, HEX);
+        // debugPrint(F(", (DLC): "));
+        // debugPrintHex(response.data_length_code);
+        debugPrint(", Data: ");
         for (int i = 0; i < response.data_length_code; i++) {
-          if (response.data[i] < 10) {
-            Serial.print("0");
-            Serial.print(response.data[i], HEX);
-          } else {
-            Serial.print(response.data[i], HEX);
-          }
-
-          if (i < response.data_length_code - 1) {
-            Serial.print(" ");
-          }
+          debugPrintHex(response.data[i]);
+          debugPrint(F(" "));
         }
-        Serial.println();
-        delay(2);
-        return true;
+        debugPrintln(F(""));
+        return response.data_length_code;
       }
     } else {
-      Serial.println("Not Received any Message!");
+      debugPrintln(F("Not Received any Message!"));
     }
   }
-  Serial.println("OBD2 Timeout!");
-  errors++;
-  if (errors > 2) {
-    errors = 0;
-    if (conectionStatus) {
-      conectionStatus = false;
+  debugPrintln(F("OBD2 Timeout!"));
+  unreceivedDataCount++;
+  if (unreceivedDataCount > 2) {
+    unreceivedDataCount = 0;
+    if (connectionStatus) {
+      stopTWAI();
+      connectionStatus = false;
+    }
+  }
+  return 0;
+}
+
+void getPID(uint8_t mode, uint8_t pid) {
+  float value = getPIDValue(mode, pid);
+  updatePIDMapping(mode, pid, value);
+
+  sendDataToServer();
+}
+
+float getPIDValue(uint8_t mode, uint8_t pid) {
+  writeData(mode, pid);
+  int len = readData();
+
+  if (len <= 0) return -1;                     // Data not received
+  if (resultBuffer.data[2] != pid) return -2;  // Unexpected PID
+
+  uint8_t A = 0, B = 0, C = 0, D = 0;
+
+  if (mode == read_LiveData) {
+    int dataBytesLen = len - 3;
+    A = (dataBytesLen >= 1) ? resultBuffer.data[3] : 0;
+    B = (dataBytesLen >= 2) ? resultBuffer.data[4] : 0;
+    C = (dataBytesLen >= 3) ? resultBuffer.data[5] : 0;
+    D = (dataBytesLen >= 4) ? resultBuffer.data[6] : 0;
+  } else if (mode == read_FreezeFrame) {
+    int dataBytesLen = len - 4;
+    A = (dataBytesLen >= 1) ? resultBuffer.data[4] : 0;
+    B = (dataBytesLen >= 2) ? resultBuffer.data[5] : 0;
+    C = (dataBytesLen >= 3) ? resultBuffer.data[6] : 0;
+    D = (dataBytesLen >= 4) ? resultBuffer.data[7] : 0;
+  }
+
+  switch (pid) {
+    case 0x01:                                      // Monitor Status Since DTC Cleared (bit encoded)
+    case 0x02:                                      // Monitor Status Since DTC Cleared (bit encoded)
+    case 0x03:                                      // Fuel System Status (bit encoded)
+      return A;                                     //
+    case 0x04:                                      // Engine Load (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x05:                                      // Coolant Temperature (°C)
+      return A - 40.0f;                             //
+    case 0x06:                                      // Short Term Fuel Trim Bank 1 (%)
+    case 0x07:                                      // Long Term Fuel Trim Bank 1 (%)
+    case 0x08:                                      // Short Term Fuel Trim Bank 2 (%)
+    case 0x09:                                      // Long Term Fuel Trim Bank 2 (%)
+      return A * 100.0f / 128.0f - 100.0f;          //
+    case 0x0A:                                      // Fuel Pressure (kPa)
+      return A * 3.0f;                              //
+    case 0x0B:                                      // Intake Manifold Absolute Pressure (kPa)
+      return A;                                     //
+    case 0x0C:                                      // RPM
+      return ((A * 256.0f) + B) / 4.0f;             //
+    case 0x0D:                                      // Speed (km/h)
+      return A;                                     //
+    case 0x0E:                                      // Timing Advance (°)
+      return A / 2.0f - 64.0f;                      //
+    case 0x0F:                                      // Intake Air Temperature (°C)
+      return A - 40.0f;                             //
+    case 0x10:                                      // MAF Flow Rate (grams/sec)
+      return ((A * 256.0f) + B) / 100.0f;           //
+    case 0x11:                                      // Throttle Position (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x12:                                      // Commanded Secondary Air Status (bit encoded)
+    case 0x13:                                      // Oxygen Sensors Present 2 Banks (bit encoded)
+      return A;                                     //
+    case 0x14:                                      // Oxygen Sensor 1A Voltage (V, %)
+    case 0x15:                                      // Oxygen Sensor 2A Voltage (V, %)
+    case 0x16:                                      // Oxygen Sensor 3A Voltage (V, %)
+    case 0x17:                                      // Oxygen Sensor 4A Voltage (V, %)
+    case 0x18:                                      // Oxygen Sensor 5A Voltage (V, %)
+    case 0x19:                                      // Oxygen Sensor 6A Voltage (V, %)
+    case 0x1A:                                      // Oxygen Sensor 7A Voltage (V, %)
+    case 0x1B:                                      // Oxygen Sensor 8A Voltage (V, %)
+      return A / 200.0f;                            // Voltage
+    case 0x1C:                                      // OBD Standards This Vehicle Conforms To (bit encoded)
+    case 0x1D:                                      // Oxygen Sensors Present 4 Banks (bit encoded)
+    case 0x1E:                                      // Auxiliary Input Status (bit encoded)
+      return A;                                     //
+    case 0x1F:                                      // Run Time Since Engine Start (seconds)
+    case 0x21:                                      // Distance Traveled With MIL On (km)
+      return (A * 256.0f) + B;                      //
+    case 0x22:                                      // Fuel Rail Pressure (kPa)
+      return ((A * 256.0f) + B) * 0.079f;           //
+    case 0x23:                                      // Fuel Rail Gauge Pressure (kPa)
+      return ((A * 256.0f) + B) / 10.0f;            //
+    case 0x24:                                      // Oxygen Sensor 1B (ratio, voltage)
+    case 0x25:                                      // Oxygen Sensor 2B (ratio, voltage)
+    case 0x26:                                      // Oxygen Sensor 3B (ratio, voltage)
+    case 0x27:                                      // Oxygen Sensor 4B (ratio, voltage)
+    case 0x28:                                      // Oxygen Sensor 5B (ratio, voltage)
+    case 0x29:                                      // Oxygen Sensor 6B (ratio, voltage)
+    case 0x2A:                                      // Oxygen Sensor 7B (ratio, voltage)
+    case 0x2B:                                      // Oxygen Sensor 8B (ratio, voltage)
+      return ((A * 256.0f) + B) / 32768.0f;         // ratio
+    case 0x2C:                                      // Commanded EGR (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x2D:                                      // EGR Error (%)
+      return A * 100.0f / 128.0f - 100.0f;          //
+    case 0x2E:                                      // Commanded Evaporative Purge (%)
+    case 0x2F:                                      // Fuel Tank Level Input (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x30:                                      // Warm-ups Since Codes Cleared (count)
+      return A;                                     //
+    case 0x31:                                      // Distance Traveled Since Codes Cleared (km)
+      return (A * 256.0f) + B;                      //
+    case 0x32:                                      // Evap System Vapor Pressure (Pa)
+      return ((A * 256.0f) + B) / 4.0f;             //
+    case 0x33:                                      // Absolute Barometric Pressure (kPa)
+      return A;                                     //
+    case 0x34:                                      // Oxygen Sensor 1C (current)
+    case 0x35:                                      // Oxygen Sensor 2C
+    case 0x36:                                      // Oxygen Sensor 3C
+    case 0x37:                                      // Oxygen Sensor 4C
+    case 0x38:                                      // Oxygen Sensor 5C
+    case 0x39:                                      // Oxygen Sensor 6C
+    case 0x3A:                                      // Oxygen Sensor 7C
+    case 0x3B:                                      // Oxygen Sensor 8C
+      return ((A * 256.0f) + B) / 32768.0f;         // ratio
+    case 0x3C:                                      // Catalyst Temperature Bank 1 Sensor 1 (°C)
+    case 0x3D:                                      // Catalyst Temperature Bank 2 Sensor 1 (°C)
+    case 0x3E:                                      // Catalyst Temperature Bank 1 Sensor 2 (°C)
+    case 0x3F:                                      // Catalyst Temperature Bank 2 Sensor 2 (°C)
+      return ((A * 256.0f) + B) / 10.0f - 40.0f;    //
+    case 0x41:                                      // Monitor status this drive cycle (bit encoded)
+      return A;                                     //
+    case 0x42:                                      // Control module voltage (V)
+      return ((A * 256.0f) + B) / 1000.0f;          //
+    case 0x43:                                      // Absolute load value (%)
+      return ((A * 256.0f) + B) * 100.0f / 255.0f;  //
+    case 0x44:                                      // Fuel/Air commanded equivalence ratio (lambda)
+      return ((A * 256.0f) + B) / 32768.0f;         // ratio
+    case 0x45:                                      // Relative throttle position (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x46:                                      // Ambient air temp (°C)
+      return A - 40.0f;                             //
+    case 0x47:                                      // Absolute throttle position B (%)
+    case 0x48:                                      // Absolute throttle position C (%)
+    case 0x49:                                      // Accelerator pedal position D (%)
+    case 0x4A:                                      // Accelerator pedal position E (%)
+    case 0x4B:                                      // Accelerator pedal position F (%)
+    case 0x4C:                                      // Commanded throttle actuator (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x4D:                                      // Time run with MIL on (min)
+    case 0x4E:                                      // Time since trouble codes cleared (min)
+      return (A * 256.0f) + B;                      //
+    case 0x4F:                                      // Max values for sensors (ratio, V, mA, kPa)
+    case 0x50:                                      // Maximum value for air flow rate from mass air flow sensor (g/s)
+    case 0x51:                                      // Fuel Type (bit encoded)
+      return A;                                     //
+    case 0x52:                                      // Ethanol fuel (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x53:                                      // Absolute evap system pressure (kPa)
+      return ((A * 256.0f) + B) / 200.0f;           //
+    case 0x54:                                      // Evap system vapor pressure (Pa)
+      return (A * 256.0f) + B;                      //
+    case 0x55:                                      // Short term secondary oxygen sensor trim, A: bank 1, B: bank 3 (%)
+    case 0x56:                                      // Long term primary oxygen sensor trim, A: bank 1, B: bank 3 (%)
+    case 0x57:                                      // Short term secondary oxygen sensor trim, A: bank 2, B: bank 4 (%)
+    case 0x58:                                      // Long term secondary oxygen sensor trim, A: bank 2, B: bank 4 (%)
+      return A * 100.0f / 128.0f - 100.0f;          //
+    case 0x59:                                      // Fuel rail absolute pressure (kPa)
+      return ((A * 256.0f) + B) * 10.0f;            //
+    case 0x5A:                                      // Relative accelerator pedal position (%)
+    case 0x5B:                                      // Hybrid battery pack remaining life (%)
+      return A * 100.0f / 255.0f;                   //
+    case 0x5C:                                      // Engine oil temperature (°C)
+      return A - 40.0f;                             //
+    case 0x5D:                                      // Fuel injection timing (°)
+      return ((A * 256.0f) + B) / 128.0f - 210.0f;  //
+    case 0x5E:                                      // Engine fuel rate (L/h)
+      return ((A * 256.0f) + B) / 20.0f;            //
+    case 0x5F:                                      // Emission requirements to which vehicle is designed (bit encoded)
+      return A;                                     //
+    case 0x61:                                      // Driver's demand engine - percent torque (%)
+    case 0x62:                                      // Actual engine - percent torque (%)
+      return A - 125.0f;                            //
+    case 0x63:                                      // Engine reference torque (Nm)
+      return (A * 256.0f) + B;                      //
+    default:                                        //
+      return -4;                                    // Unknown PID
+  }
+}
+
+uint8_t readDTCs(uint8_t mode) {
+  // Request: C2 33 F1 03 F3
+  // example Response: 87 F1 11 43 01 70 01 34 00 00 72
+  // example Response: 87 F1 11 43 00 00 72
+  int dtcCount = 0;
+  String* targetArray = nullptr;
+
+  if (mode == read_storedDTCs) {
+    targetArray = storedDTCBuffer;
+  } else if (mode == read_pendingDTCs) {
+    targetArray = pendingDTCBuffer;
+  } else {
+    return -1;  // Invalid mode
+  }
+
+  writeData(mode, 0x00);
+
+  int len = readData();
+  if (len >= 3) {
+    for (int i = 0; i < len; i += 2) {
+      uint8_t b1 = resultBuffer.data[3 + i * 2];
+      uint8_t b2 = resultBuffer.data[3 + i * 2 + 1];
+
+      if (b1 == 0 && b2 == 0) break;
+
+      targetArray[dtcCount++] = decodeDTC(b1, b2);
+    }
+  }
+
+  sendDataToServer();
+  return dtcCount;
+}
+
+bool clearDTCs() {
+  writeData(clear_DTCs, 0x00);
+  int len = readData();
+  if (len >= 3) {
+    if (resultBuffer.data[1] == 0x44) {
+      return true;
     }
   }
   return false;
 }
 
-void getPID(const byte pid) {
-  // example Request: C2 33 F1 01 0C F3
-  // example Response: 84 F1 11 41 0C 1F 40 32
-  writeData(read_LiveData, pid);
+String getVehicleInfo(uint8_t pid) {  //Not Tested
+  // Request: 09 02
+  // example Response: 07 49 02 01 00 00 00 31
+  //                   07 49 02 02 41 31 4A 43
+  //                   07 49 02 03 35 34 34 34
+  //                   07 49 02 04 52 37 32 35
+  //                   07 49 02 05 32 33 36 37
+
+  uint8_t dataArray[64];
+  int messageCount;
+  int arrayNum = 0;
+
+  if (pid == 0x02) {
+    messageCount = 5;
+  } else if (pid == 0x04 || pid == 0x06) {
+    if (pid == 0x04) {
+      writeData(read_VehicleInfo, read_ID_Length);
+    } else if (pid == 0x06) {
+      writeData(read_VehicleInfo, read_ID_Num_Length);
+    } else {
+      return "";
+    }
+
+    if (readData()) {
+      messageCount = resultBuffer.data[3];
+    } else {
+      return "";
+    }
+  }
+
+  writeData(read_VehicleInfo, pid);
 
   if (readData()) {
-    if (resultBuffer.data[2] == pid) {
-      for (int i = 0; i < 64; i++) {
-        if (liveDataMappings[i].pid == pid) {
-
-          if (pid == FUEL_SYSTEM_STATUS) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == ENGINE_LOAD) {
-            liveDataMappings[i].value = (100.0 / 255) * resultBuffer.data[3];
-          } else if (pid == ENGINE_COOLANT_TEMP) {
-            liveDataMappings[i].value = resultBuffer.data[3] - 40;
-          } else if (pid == SHORT_TERM_FUEL_TRIM_BANK_1) {
-            liveDataMappings[i].value = (resultBuffer.data[3] / 1.28) - 100.0;
-          } else if (pid == LONG_TERM_FUEL_TRIM_BANK_1) {
-            liveDataMappings[i].value = (resultBuffer.data[3] / 1.28) - 100.0;
-          } else if (pid == SHORT_TERM_FUEL_TRIM_BANK_2) {
-            liveDataMappings[i].value = (resultBuffer.data[3] / 1.28) - 100.0;
-          } else if (pid == LONG_TERM_FUEL_TRIM_BANK_2) {
-            liveDataMappings[i].value = (resultBuffer.data[3] / 1.28) - 100.0;
-          } else if (pid == FUEL_PRESSURE) {
-            liveDataMappings[i].value = 3 * resultBuffer.data[3];
-          } else if (pid == INTAKE_MANIFOLD_ABS_PRESSURE) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == ENGINE_RPM) {
-            liveDataMappings[i].value = (256 * resultBuffer.data[3] + resultBuffer.data[4]) / 4;
-          } else if (pid == VEHICLE_SPEED) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == TIMING_ADVANCE) {
-            liveDataMappings[i].value = (resultBuffer.data[3] / 2) - 64;
-          } else if (pid == INTAKE_AIR_TEMP) {
-            liveDataMappings[i].value = resultBuffer.data[3] - 40;
-          } else if (pid == MAF_FLOW_RATE) {
-            liveDataMappings[i].value = (256 * resultBuffer.data[3] + resultBuffer.data[4]) / 100.0;
-          } else if (pid == THROTTLE_POSITION) {
-            liveDataMappings[i].value = (100.0 / 255) * resultBuffer.data[3];
-          } else if (pid == COMMANDED_SECONDARY_AIR_STATUS) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == OXYGEN_SENSORS_PRESENT_2_BANKS) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == OXYGEN_SENSOR_1_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim1 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_2_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim2 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_3_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim3 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_4_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim4 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_5_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim5 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_6_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim6 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_7_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim7 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_8_A) {
-            liveDataMappings[i].value = resultBuffer.data[3] / 200.0;
-            shortTermFuelTrim8 = (100.0 / 128) * resultBuffer.data[4] - 100.0;
-          } else if (pid == OBD_STANDARDS) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == OXYGEN_SENSORS_PRESENT_4_BANKS) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == AUX_INPUT_STATUS) {
-            liveDataMappings[i].value = resultBuffer.data[3];
-          } else if (pid == RUN_TIME_SINCE_ENGINE_START) {
-            liveDataMappings[i].value = 256 * resultBuffer.data[3] + resultBuffer.data[4];
-          } else if (pid == DISTANCE_TRAVELED_WITH_MIL_ON) {
-            liveDataMappings[i].value = 256 * resultBuffer.data[3] + resultBuffer.data[4];
-          } else if (pid == SUPPORTED_PIDS_1_20) {
-            int pidIndex = 0;
-            int supportedCount = 0;
-
-            for (int i = 3; i <= 6; i++) {
-              byte value = resultBuffer.data[i];
-              for (int bit = 7; bit >= 0; bit--) {
-                if ((value >> bit) & 1) {
-                  supportedLiveData[supportedCount++] = pidIndex + 1;
-                }
-                pidIndex++;
-              }
-            }
-
-            if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_21_40)) {
-              writeData(read_LiveData, SUPPORTED_PIDS_21_40);
-              if (readData()) {
-
-                for (int i = 3; i < 6; i++) {
-                  byte value = resultBuffer.data[i];
-                  for (int bit = 7; bit >= 0; bit--) {
-                    if ((value >> bit) & 1) {
-                      supportedLiveData[supportedCount++] = pidIndex + 1;
-                    }
-                    pidIndex++;
-                  }
-                }
-              }
-            }
-
-            if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_41_60)) {
-              writeData(read_LiveData, SUPPORTED_PIDS_41_60);
-              if (readData()) {
-
-                for (int i = 3; i < 6; i++) {
-                  byte value = resultBuffer.data[i];
-                  for (int bit = 7; bit >= 0; bit--) {
-                    if ((value >> bit) & 1) {
-                      supportedLiveData[supportedCount++] = pidIndex + 1;
-                    }
-                    pidIndex++;
-                  }
-                }
-              }
-            }
-
-            if (isInArray(supportedLiveData, sizeof(supportedLiveData), SUPPORTED_PIDS_61_80)) {
-              writeData(read_LiveData, SUPPORTED_PIDS_61_80);
-              if (readData()) {
-
-                for (int i = 3; i < 6; i++) {
-                  byte value = resultBuffer.data[i];
-                  for (int bit = 7; bit >= 0; bit--) {
-                    if ((value >> bit) & 1) {
-                      supportedLiveData[supportedCount++] = pidIndex + 1;
-                    }
-                    pidIndex++;
-                  }
-                }
-              }
-            }
-
-            if (isInArray(supportedLiveData, sizeof(supportedLiveData), 0x80)) {
-              writeData(read_LiveData, 0x80);
-              if (readData()) {
-
-                for (int i = 3; i < 6; i++) {
-                  byte value = resultBuffer.data[i];
-                  for (int bit = 7; bit >= 0; bit--) {
-                    if ((value >> bit) & 1) {
-                      supportedLiveData[supportedCount++] = pidIndex + 1;
-                    }
-                    pidIndex++;
-                  }
-                }
-              }
-            }
-          }
-        }
+    for (int j = 0; j < messageCount; j++) {
+      if (pid == 0x02 && j == 0) {
+        dataArray[arrayNum++] = resultBuffer.data[7];
+        continue;
+      }
+      for (int i = 1; i <= 4; i++) {
+        dataArray[arrayNum++] = resultBuffer.data[i + 3 + j * 8];
       }
     }
   }
 
-  sendDataToServer();
-}
-
-void getFreezeFrame(const byte pid) {
-  // example Request: C3 33 F1 02 05 00 EE
-  // example Response: 84 F1 11 42 05 00 8A 57
-  writeData(read_FreezeFrame, pid);
-
-  if (readData()) {
-    if (resultBuffer.data[2] == pid) {
-      for (int i = 0; i < 64; i++) {
-        if (freezeFrameMappings[i].pid == pid) {
-          if (pid == FUEL_SYSTEM_STATUS) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == ENGINE_LOAD) {
-            freezeFrameMappings[i].value = (100.0 / 255) * resultBuffer.data[4];
-          } else if (pid == ENGINE_COOLANT_TEMP) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] - 40;
-          } else if (pid == SHORT_TERM_FUEL_TRIM_BANK_1) {
-            freezeFrameMappings[i].value = (resultBuffer.data[4] / 1.28) - 100.0;
-          } else if (pid == LONG_TERM_FUEL_TRIM_BANK_1) {
-            freezeFrameMappings[i].value = (resultBuffer.data[4] / 1.28) - 100.0;
-          } else if (pid == SHORT_TERM_FUEL_TRIM_BANK_2) {
-            freezeFrameMappings[i].value = (resultBuffer.data[4] / 1.28) - 100.0;
-          } else if (pid == LONG_TERM_FUEL_TRIM_BANK_2) {
-            freezeFrameMappings[i].value = (resultBuffer.data[4] / 1.28) - 100.0;
-          } else if (pid == FUEL_PRESSURE) {
-            freezeFrameMappings[i].value = 3 * resultBuffer.data[4];
-          } else if (pid == INTAKE_MANIFOLD_ABS_PRESSURE) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == ENGINE_RPM) {
-            freezeFrameMappings[i].value = (256 * resultBuffer.data[4] + resultBuffer.data[5]) / 4;
-          } else if (pid == VEHICLE_SPEED) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == TIMING_ADVANCE) {
-            freezeFrameMappings[i].value = (resultBuffer.data[4] / 2) - 64;
-          } else if (pid == INTAKE_AIR_TEMP) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] - 40;
-          } else if (pid == MAF_FLOW_RATE) {
-            freezeFrameMappings[i].value = (256 * resultBuffer.data[4] + resultBuffer.data[5]) / 100.0;
-          } else if (pid == THROTTLE_POSITION) {
-            freezeFrameMappings[i].value = (100.0 / 255) * resultBuffer.data[4];
-          } else if (pid == COMMANDED_SECONDARY_AIR_STATUS) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == OXYGEN_SENSORS_PRESENT_2_BANKS) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == OXYGEN_SENSOR_1_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim1 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_2_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim2 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_3_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim3 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_4_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim4 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_5_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim5 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_6_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim6 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_7_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim7 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OXYGEN_SENSOR_8_A) {
-            freezeFrameMappings[i].value = resultBuffer.data[4] / 200.0;
-            shortTermFuelTrim8 = (100.0 / 128) * resultBuffer.data[5] - 100.0;
-          } else if (pid == OBD_STANDARDS) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == OXYGEN_SENSORS_PRESENT_4_BANKS) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == AUX_INPUT_STATUS) {
-            freezeFrameMappings[i].value = resultBuffer.data[4];
-          } else if (pid == RUN_TIME_SINCE_ENGINE_START) {
-            freezeFrameMappings[i].value = 256 * resultBuffer.data[4] + resultBuffer.data[5];
-          } else if (pid == DISTANCE_TRAVELED_WITH_MIL_ON) {
-            freezeFrameMappings[i].value = 256 * resultBuffer.data[4] + resultBuffer.data[5];
-          }
-        }
-      }
-    }
+  if (pid == 0x02 || pid == 0x04) {
+    return convertHexToAscii(dataArray, arrayNum);
+  } else if (pid == 0x06) {
+    return convertBytesToHexString(dataArray, arrayNum);
   }
-  sendDataToServer();
+  return "";
 }
 
-void get_DTCs() {
-  // Request: C1 33 F1 03 F3
-  // example Response: 87 F1 11 43 01 70 01 34 00 00 72
-  int dtcs = 0;
-  char dtcBytes[2];
-
-  writeData(read_DTCs, 0x00);
-  if (readData()) {
-
-    int length = sizeof(resultBuffer.data);
-    for (int i = 0; i < length; i++) {
-      dtcBytes[0] = resultBuffer.data[3 + i * 2];
-      dtcBytes[1] = resultBuffer.data[3 + i * 2 + 1];
-
-      if (dtcBytes[0] == 0 && dtcBytes[1] == 0) {
-        break;
-      } else {
-        String ErrorCode = decodeDTC(dtcBytes[0], dtcBytes[1]);
-        dtcBuffer[dtcs++] = ErrorCode;
-      }
-    }
-    sendDataToServer();
-  }
-}
-
-String decodeDTC(char input_byte1, char input_byte2) {
-  String ErrorCode = "";
-  const static char type_lookup[4] = { 'P', 'C', 'B', 'U' };
-  const static char digit_lookup[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-
-  ErrorCode += type_lookup[(input_byte1 >> 6) & 0b11];
-  ErrorCode += digit_lookup[(input_byte1 >> 4) & 0b11];
-  ErrorCode += digit_lookup[input_byte1 & 0b1111];
-  ErrorCode += digit_lookup[input_byte2 >> 4];
-  ErrorCode += digit_lookup[input_byte2 & 0b1111];
-
-  return ErrorCode;
-}
-
-void clear_DTC() {
-  writeData(clear_DTCs, 0x00);
-}
-
-// void getVIN() {
-//   // Request: C2 33 F1 09 02 F1
-//   // example Response: 87 F1 11 49 02 01 00 00 00 31 06
-//   //                   87 F1 11 49 02 02 41 31 4A 43 D5
-//   //                   87 F1 11 49 02 03 35 34 34 34 A8
-//   //                   87 F1 11 49 02 04 52 37 32 35 C8
-
-//   byte VIN_Array[17];
-//   int arrayNum = 0;
-
-//   if (protocol == "ISO9141") {
-//     writeData(vehicle_info_SLOW, sizeof(vehicle_info_SLOW), read_VIN);
-//   } else if (protocol == "ISO14230_Fast" || protocol == "ISO14230_Slow") {
-//     writeData(vehicle_info, sizeof(vehicle_info), read_VIN);
-//   }
-
-//   //delay(200);
-//   readData();
-
-//   if (resultBuffer[5] == 0x01) {
-//     VIN_Array[arrayNum++] = resultBuffer[9];
-//     for (int j = 0; j < 4; j++) {
-//       for (int i = 1; i <= 4; i++) {
-//         VIN_Array[arrayNum++] = resultBuffer[i + 16 + j * 11];
-//       }
-//     }
-//   }
-
-//   Vehicle_VIN = convertHexToAscii(VIN_Array, sizeof(VIN_Array));
-// }
-
-// void getCalibrationID() {
-//   // Request: C2 33 F1 09 04 F3
-//   // example Response: 87 F1 11 49 04 01 4F 32 43 44 DF
-//   //                   87 F1 11 49 04 02 31 30 31 41 AB
-//   //                   87 F1 11 49 04 03 00 00 00 00 D9
-//   //                   87 F1 11 49 04 04 00 00 00 00 DA
-
-//   byte ID_Array[64];
-//   int ID_messageCount;
-//   int arrayNum = 0;
-
-//   if (protocol == "ISO9141") {
-//     writeData(vehicle_info_SLOW, sizeof(vehicle_info_SLOW), read_ID_Length);
-//   } else if (protocol == "ISO14230_Fast" || protocol == "ISO14230_Slow") {
-//     writeData(vehicle_info, sizeof(vehicle_info), read_ID_Length);
-//   }
-//   //delay(200);
-//   readData();
-
-//   ID_messageCount = resultBuffer[5];
-
-//   if (protocol == "ISO9141") {
-//     writeData(vehicle_info_SLOW, sizeof(vehicle_info_SLOW), read_ID);
-//   } else if (protocol == "ISO14230_Fast" || protocol == "ISO14230_Slow") {
-//     writeData(vehicle_info, sizeof(vehicle_info), read_ID);
-//   }
-//   //delay(200);
-//   readData();
-
-
-//   if (resultBuffer[5] == 0x01) {
-//     for (int j = 0; j < ID_messageCount; j++) {
-//       for (int i = 1; i <= 4; i++) {
-//         ID_Array[arrayNum++] = resultBuffer[i + 5 + j * 11];
-//       }
-//     }
-//   }
-//   Vehicle_ID = convertHexToAscii(ID_Array, arrayNum);
-// }
-
-// void getCalibrationIDNum() {
-//   // Request: C2 33 F1 09 06 F5
-//   // example Response: 87 F1 11 49 06 01 00 00 67 0C 4C
-
-//   byte IDNum_Array[16];
-//   int ID_messageCount;
-//   int arrayNum = 0;
-
-//   if (protocol == "ISO9141") {
-//     writeData(vehicle_info_SLOW, sizeof(vehicle_info_SLOW), read_ID_Num_Length);
-//   } else if (protocol == "ISO14230_Fast" || protocol == "ISO14230_Slow") {
-//     writeData(vehicle_info, sizeof(vehicle_info), read_ID_Num_Length);
-//   }
-//   //delay(200);
-//   readData();
-//   ID_messageCount = resultBuffer[5];
-
-//   if (protocol == "ISO9141") {
-//     writeData(vehicle_info_SLOW, sizeof(vehicle_info_SLOW), read_ID_Num);
-//   } else if (protocol == "ISO14230_Fast" || protocol == "ISO14230_Slow") {
-//     writeData(vehicle_info, sizeof(vehicle_info), read_ID_Num);
-//   }
-//   //delay(200);
-//   readData();
-
-//   if (resultBuffer[5] == 0x01) {
-//     for (int j = 0; j < ID_messageCount; j++) {
-//       for (int i = 1; i <= 4; i++) {
-//         IDNum_Array[arrayNum++] = resultBuffer[i + 5 + j * 11];
-//       }
-//     }
-//   }
-//   Vehicle_ID_Num = convertBytesToHexString(IDNum_Array, arrayNum);
-// }
-
-void getSupportedPIDs(const byte option) {
-  int pidIndex = 0;
+uint8_t readSupportedData(uint8_t mode) {
   int supportedCount = 0;
+  int pidIndex = 0;
+  int startByte = 0;
+  int arraySize = 32;  // Size of supported data arrays
+  uint8_t* targetArray = nullptr;
 
-  if (option == 0x01) {
-    writeData(option, SUPPORTED_PIDS_1_20);
-
-    if (readData()) {
-      for (int i = 3; i < 7; i++) {
-        byte value = resultBuffer.data[i];
-        for (int bit = 7; bit >= 0; bit--) {
-          if ((value >> bit) & 1) {
-            supportedLiveData[supportedCount++] = pidIndex + 1;
-          }
-          pidIndex++;
-        }
-      }
-
-      if (isInArray(supportedLiveData, sizeof(supportedLiveData), 0x20)) {
-        writeData(option, SUPPORTED_PIDS_21_40);
-        if (readData()) {
-
-          for (int i = 3; i < 7; i++) {
-            byte value = resultBuffer.data[i];
-            for (int bit = 7; bit >= 0; bit--) {
-              if ((value >> bit) & 1) {
-                supportedLiveData[supportedCount++] = pidIndex + 1;
-              }
-              pidIndex++;
-            }
-          }
-        }
-      }
-
-      if (isInArray(supportedLiveData, sizeof(supportedLiveData), 0x40)) {
-        writeData(option, SUPPORTED_PIDS_41_60);
-        if (readData()) {
-
-          for (int i = 3; i < 7; i++) {
-            byte value = resultBuffer.data[i];
-            for (int bit = 7; bit >= 0; bit--) {
-              if ((value >> bit) & 1) {
-                supportedLiveData[supportedCount++] = pidIndex + 1;
-              }
-              pidIndex++;
-            }
-          }
-        }
-      }
-
-      memcpy(desiredLiveData, supportedLiveData, sizeof(supportedLiveData));
-    }
+  if (mode == read_LiveData) {  // Mode 01
+    startByte = 3;
+    targetArray = supportedLiveData;
+  } else if (mode == read_FreezeFrame) {  // Mode 02
+    startByte = 4;
+    targetArray = supportedFreezeFrame;
+  } else if (mode == test_OxygenSensors) {  // Mode 05
+    startByte = 4;
+    targetArray = supportedOxygenSensor;
+  } else if (mode == test_OtherComponents) {  // Mode 06
+    startByte = 3;
+    targetArray = supportedOtherComponents;
+  } else if (mode == control_OnBoardComponents) {  // Mode 08
+    startByte = 3;
+    targetArray = supportedControlComponents;
+  } else if (mode == read_VehicleInfo) {  // Mode 09
+    startByte = 3;
+    targetArray = supportedVehicleInfo;
+  } else {
+    return -1;  // Invalid mode
   }
-  if (option == 0x02) {
-    writeData(option, SUPPORTED_PIDS_1_20);
 
-    if (readData()) {
-      for (int i = 4; i < 8; i++) {
-        byte value = resultBuffer.data[i];
+  uint8_t pidCmds[] = { SUPPORTED_PIDS_1_20, SUPPORTED_PIDS_21_40, SUPPORTED_PIDS_41_60, SUPPORTED_PIDS_61_80, SUPPORTED_PIDS_81_100 };
+
+  for (int n = 0; n < 5; n++) {
+    // Group 0 is always processed, others must be checked
+    if (n != 0 && !isInArray(targetArray, 32, pidCmds[n])) break;
+
+    writeData(mode, pidCmds[n]);
+    if (readData() && resultBuffer.data[1] == 0x40 + mode) {
+      for (int i = 0; i < 4; i++) {
+        uint8_t value = resultBuffer.data[i + startByte];
         for (int bit = 7; bit >= 0; bit--) {
-          if ((value >> bit) & 1) {
-            supportedFreezeFrame[supportedCount++] = pidIndex + 1;
-          }
+          if ((value >> bit) & 1) targetArray[supportedCount++] = pidIndex + 1;
           pidIndex++;
         }
       }
     }
   }
-  if (option == 0x09) {
-    writeData(option, supported_VehicleInfo);
 
-    if (readData()) {
-      for (int i = 4; i < 8; i++) {
-        byte value = resultBuffer.data[i];
-        for (int bit = 7; bit >= 0; bit--) {
-          if ((value >> bit) & 1) {
-            supportedVehicleInfo[supportedCount++] = pidIndex + 1;
-          }
-          pidIndex++;
-        }
-      }
-    }
+  if (mode == read_LiveData) {
+    memcpy(desiredLiveData, supportedLiveData, sizeof(supportedLiveData));
   }
+
+  return supportedCount;
 }

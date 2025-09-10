@@ -121,7 +121,7 @@ void initWebServer() {
   });
   server.on("/api/clearDTCs", HTTP_GET, [](AsyncWebServerRequest *request) {
     Melody2();
-    clear_DTC();
+    clearDTC_Flag = true;
     request->send(200, "text/plain", "Succesfully");
   });
   server.on("/wifiOptions", HTTP_POST, [](AsyncWebServerRequest *request) {
@@ -247,7 +247,7 @@ String JsonData() {
         pidObject["unit"] = mapping.unit;
       }
     }
-    jsonDoc["DTCs"] = joinStringsWithComma(dtcBuffer, sizeof(dtcBuffer));
+    jsonDoc["DTCs"] = joinStringsWithComma(storedDTCBuffer, sizeof(storedDTCBuffer));
   } else if (page == 1) {
     JsonObject liveData = jsonDoc.createNestedObject("LiveData");
     for (const auto &mapping : liveDataMappings) {
@@ -258,12 +258,12 @@ String JsonData() {
       }
     }
   } else if (page == 2) {
-    jsonDoc["DTCs"] = joinStringsWithComma(dtcBuffer, sizeof(dtcBuffer));
+    jsonDoc["DTCs"] = joinStringsWithComma(storedDTCBuffer, sizeof(storedDTCBuffer));
     if (isInArray(supportedLiveData, sizeof(supportedLiveData), DISTANCE_TRAVELED_WITH_MIL_ON)) {
       jsonDoc[liveDataMappings[32].jsonKey] = liveDataMappings[32].value;  //Distance Traveled With MIL On
     }
   } else if (page == 3) {
-    jsonDoc["DTCs"] = joinStringsWithComma(dtcBuffer, sizeof(dtcBuffer));
+    jsonDoc["DTCs"] = joinStringsWithComma(storedDTCBuffer, sizeof(storedDTCBuffer));
     JsonObject freezeFrame = jsonDoc.createNestedObject("FreezeFrame");
     for (const auto &mapping : freezeFrameMappings) {
       if (isInArray(supportedFreezeFrame, sizeof(supportedFreezeFrame), mapping.pid)) {
@@ -300,10 +300,10 @@ String JsonData() {
     }
   }
 
-  jsonDoc["selectedProtocol"] = protocol;
+  jsonDoc["selectedProtocol"] = selectedProtocol;
   jsonDoc["connectedProtocol"] = connectedProtocol;
   jsonDoc["Voltage"] = VOLTAGE;
-  jsonDoc["vehicleStatus"] = conectionStatus;
+  jsonDoc["vehicleStatus"] = connectionStatus;
   serializeJson(jsonDoc, JSONtxt);
   return JSONtxt;
 }
@@ -312,36 +312,15 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
   if (type == WS_EVT_DATA) {
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-      data[len] = 0;
-      const char *message = (const char *)data;
+      String message = String((char *)data).substring(0, len);
 
-      if (strcmp(message, "clear_dtc") == 0) {
+      if (message == "clear_dtc") {
         Melody2();
-        clear_DTC();
-      }
-      if (strcmp(message, "beep") == 0) {
+        clearDTC_Flag = true;
+      } else if (message == "beep") {
         Melody2();
-      }
-      if (strcmp(message, "page0") == 0) {
-        page = 0;
-      }
-      if (strcmp(message, "page1") == 0) {
-        page = 1;
-      }
-      if (strcmp(message, "page2") == 0) {
-        page = 2;
-      }
-      if (strcmp(message, "page3") == 0) {
-        page = 3;
-      }
-      if (strcmp(message, "page4") == 0) {
-        page = 4;
-      }
-      if (strcmp(message, "page5") == 0) {
-        page = 5;
-      }
-      if (strcmp(message, "page6") == 0) {
-        page = 6;
+      } else if (message.startsWith("page")) {
+        page = message.substring(4).toInt();
       }
     }
   }
