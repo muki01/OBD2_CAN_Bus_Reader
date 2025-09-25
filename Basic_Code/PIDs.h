@@ -2,12 +2,25 @@
 // PIDs (https://en.wikipedia.org/wiki/OBD-II_PIDs)
 //-------------------------------------------------------------------------------------//
 
+typedef struct {
+  uint32_t id;
+  uint32_t rtr;
+  uint32_t ide;
+  uint8_t length;
+  uint8_t data[8];
+} canMessage;
+
 // Modes
-const byte read_LiveData= 0x01;   // Read Troubleshoot Codes
-const byte read_FreezeFrame = 0x02;   // Read Troubleshoot Codes
-const byte read_DTCs = 0x03;   // Read Troubleshoot Codes
-const byte clear_DTCs = 0x04;  // Clear Troubleshoot Codes
-const byte read_VehicleInfo = 0x09;  // Clear Troubleshoot Codes
+const byte read_LiveData = 0x01;              // Show current live data
+const byte read_FreezeFrame = 0x02;           // Show freeze frame data
+const byte read_storedDTCs = 0x03;            // Show stored Diagnostic Trouble Codes (DTCs)
+const byte clear_DTCs = 0x04;                 // Clear Diagnostic Trouble Codes and stored values
+const byte test_OxygenSensors = 0x05;         // Test results, oxygen sensor monitoring (non-CAN only)
+const byte test_OtherComponents = 0x06;       // Test results, other component/system monitoring (for CAN)
+const byte read_pendingDTCs = 0x07;           // Show pending Diagnostic Trouble Codes
+const byte control_OnBoardComponents = 0x08;  // Control operation of on-board component/system
+const byte read_VehicleInfo = 0x09;           // Request vehicle information
+const byte read_PermanentDTCs = 0x0A;         // Show permanent Diagnostic Trouble Codes
 
 // PIDs for Vehicle Info
 const byte supported_VehicleInfo = 0x00;  // Read Supported Vehicle Info
@@ -124,3 +137,5 @@ const byte ACTUAL_ENGINE_TORQUE             = 0x62;  // %
 const byte ENGINE_REFERENCE_TORQUE          = 0x63;  // Nm
 const byte ENGINE_PERCENT_TORQUE_DATA       = 0x64;  // %
 const byte AUX_INPUT_OUTPUT_SUPPORTED       = 0x65;  // bit encoded
+
+const byte SUPPORTED_PIDS_81_100 = 0x80;            // bit encoded

@@ -1,13 +1,25 @@
 #include "driver/twai.h"
 #include "PIDs.h"
 
-#define TX_GPIO_NUM GPIO_NUM_9                   // CAN TX pin
-#define RX_GPIO_NUM GPIO_NUM_10                  // CAN RX pin
-#define CAN_SPEED TWAI_TIMING_CONFIG_500KBITS()  // CAN SPEED 125KBITS, 250KBITS, 500KBITS or 1MBITS
-#define CAN_BIT 29                               // 11BIT or 29BIT
+const uint8_t CAN_rxPin = 12;
+const uint8_t CAN_txPin = 13;
+uint8_t CAN_BIT = 11;  // 11-bit or 29-bit
+twai_timing_config_t CAN_SPEED = TWAI_TIMING_CONFIG_250KBITS();
+#define DEBUG_Serial
 
-#define BOOT_BUTTON_PIN 0
-bool buttonPressed = false;
+#ifdef DEBUG_Serial
+#define debugPrint(x) Serial.print(x)
+#define debugPrintln(x) Serial.println(x)
+#define debugPrintHex(x) Serial.printf("%02lX", x);
+#else
+#define debugPrint(x) ((void)0)
+#define debugPrintln(x) ((void)0)
+#define debugPrintHex(x) ((void)0)
+#endif
+
+String selectedProtocol, connectedProtocol = "";
+int unreceivedDataCount = 0;
+bool connectionStatus = false;
 
 int fuelSystemStatus = 0, engineLoadValue = 0, engineCoolantTemp = 0, shortTermFuelTrimBank1 = 0;
 int longTermFuelTrimBank1 = 0, shortTermFuelTrimBank2 = 0, longTermFuelTrimBank2 = 0, fuelPressureValue = 0;
@@ -21,11 +33,21 @@ int shortTermFuelTrim8 = 0, obdStandards = 0, oxygenSensorsPresent4Banks = 0, au
 int runTimeSinceEngineStart = 0, distanceWithMilOn = 0;
 
 void setup() {
+#ifdef DEBUG_Serial
   Serial.begin(115200);
-  pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP);
-  init_CAN();
+#endif
 }
 
 void loop() {
-  obdTask();
+  if (connectionStatus == false) {
+    bool init_success = initOBD2();
+
+    if (init_success) {
+      readSupportedData(0x01);
+      readSupportedData(0x02);
+      readSupportedData(0x09);
+    }
+  } else {
+    obdTask();
+  }
 }
