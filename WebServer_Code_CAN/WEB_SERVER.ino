@@ -17,20 +17,30 @@ void initWiFi() {
     if (WiFi.config(STA_ip, STA_gateway, STA_subnet))
       ;
   }
+  debugPrintln(F("WiFi Mode: STA"));
   WiFi.mode(WIFI_STA);
-#ifdef ESP32
-  WiFi.setTxPower(WIFI_POWER_5dBm);
-#endif
+  // #ifdef ESP32
+  //   WiFi.setTxPower(WIFI_POWER_5dBm);
+  // #endif
   WiFi.begin(STA_ssid.c_str(), STA_password.c_str());
   unsigned long previousMillis = millis();
+  debugPrint(F("Trying to connect to "));
+  debugPrintln(STA_ssid.c_str());
   while (WiFi.status() != WL_CONNECTED && millis() - previousMillis <= 3000) {
+    debugPrint(F(". "));
     delay(500);
   }
+  debugPrintln(F(""));
 
   if (WiFi.status() == WL_CONNECTED) {
+    debugPrint(F("Connect to "));
+    debugPrintln(STA_ssid.c_str());
     BlinkLed(100, 5);
   } else {
     // if (WiFi.softAPConfig(AP_ip, AP_gateway, AP_subnet));
+    debugPrint(F("Not connected to "));
+    debugPrintln(STA_ssid.c_str());
+    debugPrintln(F("WiFi Mode: AP"));
     WiFi.mode(WIFI_AP);
     WiFi.softAP(AP_ssid, AP_password);
     BlinkLed(300, 1);
@@ -94,6 +104,7 @@ void initWebServer() {
     }
     request->send(200, "text/plain", "Successfully received pids");
   });
+#ifdef ESP32
   server.on(
     "/firmwareUpdate", HTTP_POST, [](AsyncWebServerRequest *request) {
       request->send(400, "text/plain", "No files uploaded.");
@@ -161,6 +172,7 @@ void initWebServer() {
         }
       }
     });
+#endif
 
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->send_P(404, "text/plain", "404 Not found");

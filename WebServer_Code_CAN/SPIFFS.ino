@@ -4,6 +4,7 @@ void initSpiffs() {
       BlinkLed(1000, 100);
     }
   }
+  debugPrintln(F("SPIFFS Init Successfully"));
 }
 
 void readSettings() {
@@ -54,7 +55,6 @@ void changeCommunicationProtocol(String communicationProtocol) {
   updateSetting("protocol", communicationProtocol);
   selectedProtocol = communicationProtocol;
   stopTWAI();
-  if (connectionStatus) {
-    connectionStatus = false;
-  }
+  connectionStatus = false;
+  sendDataToServer();
 }

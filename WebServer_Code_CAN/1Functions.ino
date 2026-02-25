@@ -29,14 +29,6 @@ bool isInArray(byte arr[], int size, byte value) {
   return false;
 }
 
-// int getArrayLength(byte arr[]) {
-//   int count = 0;
-//   while (arr[count] != 0) {
-//     count++;
-//   }
-//   return count;
-// }
-
 String convertHexToAscii(byte* hexBytes, size_t length) {
   String asciiString = "";
   for (int i = 0; i < length; i++) {
@@ -92,6 +84,10 @@ String joinStringsWithComma(String arr[], int length) {
   return result;
 }
 
+void printHex(uint8_t val) {
+  if (val < 0x10) Serial.print("0");
+  Serial.print(val, HEX);
+}
 
 void connectMelody() {
   tone(Buzzer, 660, 50);
