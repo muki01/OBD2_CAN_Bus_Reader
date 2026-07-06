@@ -25,7 +25,7 @@ twai_timing_config_t CAN_SPEED = TWAI_TIMING_CONFIG_250KBITS();
 #ifdef DEBUG_Serial
 #define debugPrint(x) Serial.print(x)
 #define debugPrintln(x) Serial.println(x)
-#define debugPrintHex(x) Serial.printf("%02lX", x);
+#define debugPrintHex(x) printHex(x)
 #else
 #define debugPrint(x) ((void)0)
 #define debugPrintln(x) ((void)0)
@@ -59,7 +59,7 @@ void setup() {
 
   initSpiffs();
   readSettings();
-  debugPrint("Selected Protocol: ");
+  debugPrint(F("Selected Protocol: "));
   debugPrintln(selectedProtocol);
 
   initWiFi();

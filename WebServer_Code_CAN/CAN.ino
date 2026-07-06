@@ -9,10 +9,9 @@ byte supportedOtherComponents[32];
 byte supportedControlComponents[32];
 byte supportedVehicleInfo[32];
 
-
 void obdTask() {
   if (clearDTC_Flag == true) {
-    debugPrintln("Clearing DTCs");
+    debugPrintln(F("Clearing DTCs"));
     clearDTCs();
     clearDTC_Flag = false;
   }
@@ -267,7 +266,7 @@ uint8_t readData() {
         // debugPrintHex(response.extd, HEX);
         // debugPrint(F(", (DLC): "));
         // debugPrintHex(response.data_length_code);
-        debugPrint(", Data: ");
+        debugPrint(F(", Data: "));
         for (int i = 0; i < response.data_length_code; i++) {
           debugPrintHex(response.data[i]);
           debugPrint(F(" "));

@@ -17,20 +17,30 @@ void initWiFi() {
     if (WiFi.config(STA_ip, STA_gateway, STA_subnet))
       ;
   }
+  debugPrintln(F("WiFi Mode: STA"));
   WiFi.mode(WIFI_STA);
-#ifdef ESP32
-  WiFi.setTxPower(WIFI_POWER_5dBm);
-#endif
+  // #ifdef ESP32
+  //   WiFi.setTxPower(WIFI_POWER_5dBm);
+  // #endif
   WiFi.begin(STA_ssid.c_str(), STA_password.c_str());
   unsigned long previousMillis = millis();
+  debugPrint(F("Trying to connect to "));
+  debugPrintln(STA_ssid.c_str());
   while (WiFi.status() != WL_CONNECTED && millis() - previousMillis <= 3000) {
+    debugPrint(F(". "));
     delay(500);
   }
+  debugPrintln(F(""));
 
   if (WiFi.status() == WL_CONNECTED) {
+    debugPrint(F("Connect to "));
+    debugPrintln(STA_ssid.c_str());
     BlinkLed(100, 5);
   } else {
     // if (WiFi.softAPConfig(AP_ip, AP_gateway, AP_subnet));
+    debugPrint(F("Not connected to "));
+    debugPrintln(STA_ssid.c_str());
+    debugPrintln(F("WiFi Mode: AP"));
     WiFi.mode(WIFI_AP);
     WiFi.softAP(AP_ssid, AP_password);
     BlinkLed(300, 1);
@@ -39,81 +49,20 @@ void initWiFi() {
 
 void initWebServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/index.html", "text/html");
-    page = 0;
+    AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/index.html.gz", "text/html");
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
   });
-  server.on("/liveData.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/liveData.html", "text/html");
-    page = 1;
+
+  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/index.html.gz", "text/html");
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
   });
-  server.on("/errorCodes.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/errorCodes.html", "text/html");
-    page = 2;
-  });
-  server.on("/freezeFrame.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/freezeFrame.html", "text/html");
-    page = 3;
-  });
-  server.on("/speedTest.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/speedTest.html", "text/html");
-    page = 4;
-  });
-  server.on("/vehicleInfo.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/vehicleInfo.html", "text/html");
-    page = 5;
-  });
-  server.on("/settings.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/settings.html", "text/html");
-    page = 6;
-  });
-  server.on("/css/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/style.css", "text/css");
-  });
-  server.on("/css/liveData.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/liveData.css", "text/css");
-  });
-  server.on("/css/errorCodes.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/errorCodes.css", "text/css");
-  });
-  server.on("/css/freezeFrame.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/freezeFrame.css", "text/css");
-  });
-  server.on("/css/speedTest.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/speedTest.css", "text/css");
-  });
-  server.on("/css/vehicleInfo.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/vehicleInfo.css", "text/css");
-  });
-  server.on("/css/settings.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/css/settings.css", "text/css");
-  });
-  server.on("/js/script.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/script.js", "text/javascript");
-  });
-  server.on("/js/liveData.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/liveData.js", "text/javascript");
-  });
-  server.on("/js/errorCodes.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/errorCodes.js", "text/javascript");
-  });
-  server.on("/js/freezeFrame.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/freezeFrame.js", "text/javascript");
-  });
-  server.on("/js/speedTest.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/speedTest.js", "text/javascript");
-  });
-  server.on("/js/vehicleInfo.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/vehicleInfo.js", "text/javascript");
-  });
-  server.on("/js/settings.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/settings.js", "text/javascript");
-  });
-  server.on("/js/webSocket.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/js/webSocket.js", "text/javascript");
-  });
-  server.on("/fonts/Montserrat-Bold.woff2", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/fonts/Montserrat-Bold.woff2", "application/font-woff2");
-  });
+  server.serveStatic("/css", SPIFFS, "/css").setCacheControl("max-age=86400");
+  server.serveStatic("/js", SPIFFS, "/js").setCacheControl("no-cache");
+  server.serveStatic("/fonts", SPIFFS, "/fonts").setCacheControl("max-age=86400");
+
   server.on("/api/getData", HTTP_GET, [](AsyncWebServerRequest *request) {
     page = -1;
     Melody2();
@@ -155,6 +104,7 @@ void initWebServer() {
     }
     request->send(200, "text/plain", "Successfully received pids");
   });
+#ifdef ESP32
   server.on(
     "/firmwareUpdate", HTTP_POST, [](AsyncWebServerRequest *request) {
       request->send(400, "text/plain", "No files uploaded.");
@@ -222,6 +172,7 @@ void initWebServer() {
         }
       }
     });
+#endif
 
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->send_P(404, "text/plain", "404 Not found");
