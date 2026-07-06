@@ -12,6 +12,8 @@ I will share schematics to communicate with the car. You can use these schematic
 
 In the future, I will release a separate repository that dives deeper into CAN Bus functionality. In that project, I'll show how you can control various vehicle systems such as headlights, windows, locks, and more using the CAN Bus. I am currently testing this feature, and it works well.
 
+🔗 **Looking for the Web UI?** You can explore the dedicated user interface repository here: [OBD2 K-Line Web UI Project](https://github.com/muki01/OBD2-Diagnostic-UI)
+
 You can also see my other car projects:
 1. [Тhis](https://github.com/muki01/I-K_Bus) project is for BMW with I/K bus system. 
 2. [Тhis](https://github.com/muki01/OBD2_CAN_Bus_Reader) project is for Cars with CAN Bus.
@@ -36,8 +38,14 @@ You can also see my other car projects:
 
 
 ## 📱Pictures of the application I made
-<img width=90% src="https://github.com/user-attachments/assets/766e178a-b956-4bdb-8f64-1919da479c65">
-<img width=90% src="https://github.com/user-attachments/assets/24f8f3cd-4056-44de-8414-635a4de0d60c">
+<a href="https://github.com/muki01/OBD2-Diagnostic-UI" target="_blank">
+  <img width=90% src="https://github.com/user-attachments/assets/5a3e0540-b56d-4c3a-a0bf-8c1affcda00c" />
+</a>
+<a href="https://github.com/muki01/OBD2-Diagnostic-UI" target="_blank">
+  <img width=90% src="https://github.com/user-attachments/assets/8544df16-cf62-4a80-8f19-cbd0daadfb51" />
+</a>
+
+📂 *The UI for this application has been moved to a separate repository. You can check out the source code and details here:* **[Explore the Web UI Repository](https://github.com/muki01/OBD2-Diagnostic-UI)**
 
 
 ## 🛠️Schematics for communication
