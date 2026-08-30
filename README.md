@@ -39,7 +39,7 @@ You can also see my other car projects:
 
 ## 📱Pictures of the application I made
 <a href="https://github.com/muki01/OBD2-Diagnostic-UI" target="_blank">
-  <img width=90% src="https://github.com/user-attachments/assets/5a3e0540-b56d-4c3a-a0bf-8c1affcda00c" />
+  <img width=90% src="https://github.com/user-attachments/assets/9b3aebe5-998d-4731-85bc-a0d7666fd116" />
 </a>
 <a href="https://github.com/muki01/OBD2-Diagnostic-UI" target="_blank">
   <img width=90% src="https://github.com/user-attachments/assets/8544df16-cf62-4a80-8f19-cbd0daadfb51" />
@@ -50,6 +50,12 @@ You can also see my other car projects:
 
 ## 🛠️Schematics for communication
 <img src="https://github.com/user-attachments/assets/3fdc245d-841e-4733-b52c-21789ddfdf5e" width=70%>
+
+### 📷 PCBs manufactured for this project:
+
+<img width="27%" src="https://github.com/user-attachments/assets/3a34b38d-cd39-4f5f-b4dd-d671399bff53" />
+<img width="29%" src="https://github.com/user-attachments/assets/1a794aea-b9b8-4cdd-bebb-17b25fe7fd7b" />
+<img width="36%" src="https://github.com/user-attachments/assets/f2bfb41b-f75f-4a12-8223-ec67dbc38678" />
 
 ---
 
