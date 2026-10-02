@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🎨 Web dashboard (UI) issues
+    url: https://github.com/muki01/OBD2-Diagnostic-UI/issues
+    about: Problems or ideas related to the web interface itself.
+  - name: 🚗 K-Line vehicles
+    url: https://github.com/muki01/OBD2_K-line_Reader
+    about: Cars with only pin 7 use K-Line. Try the OBD2 K-Line Reader.
+  - name: 💼 Custom development
+    url: mailto:muksin.muksin04@gmail.com
+    about: Need a custom diagnostic tool, protocol or PCB? Get in touch.

@@ -1,47 +1,66 @@
-# WebServer Code
-This code is designed to be used with ESP32 devices. It creates a Web Server that allows you to view the car's values.
-The ESP32 creates a WiFi AP (access point) named "OBD2 Master".After connecting to this WiFi network, you should open `192.168.4.1` address in your browser.
+# WebServer_Code_CAN — Setup Guide
 
-## 📡 How It Works
-The ESP32's built-in CAN (TWAI) controller connects to the car’s OBD-II interface to retrieve vehicle data. This data is then sent to a website via WebSocket.
+ESP32 firmware that reads the vehicle over the CAN bus and serves a web dashboard. The ESP32 creates a Wi-Fi access point named **`OBD2 Master`**; connect to it and open **http://192.168.4.1** in your browser.
 
-## 🛠️ Hardware Setup
-Since the ESP32 includes an internal CAN controller, you only need an external CAN transceiver (e.g., SN65HVD230, TJA1050). You can connect the transceiver to any GPIO pins on the ESP32 — the TWAI driver allows you to configure which pins to use in software. For reliable communication, make sure to add a 120Ω termination resistor to the CAN bus if needed.
+← Back to the [main README](../README.md)
 
-## ⚙️Instalation
-There are two ways to install the code. The first way is to flash the files I have provided on the releases page. The second way is to use the Arduino IDE to manually compile and upload.
+## How It Works
 
-### 1. Flash Firmware
+The ESP32's built-in CAN controller (TWAI) talks to the car through the OBD-II connector. The values it reads are sent to the web page as JSON over a WebSocket.
 
-### 2. Manuel Instalation using Arduino IDE
-* Open .ino file
-* 📚Instal these Libraries
-  ~~~
-  - ESPAsyncWebServer
-  - AsyncTCP
-  - ArduinoJson
-  ~~~
-* Edit the pins for your Board
-  ~~~
-  #define TX_GPIO_NUM GPIO_NUM_13  // CAN TX pin
-  #define RX_GPIO_NUM GPIO_NUM_12  // CAN RX pin
-  #define Led 8
-  #define Buzzer 4
-  #define voltagePin 3
-  ~~~
-* If you are using ESP32 C3, C6, S2, S3 or H2 board, you need to disable "USB CDC On Boot" option in Tools menu
-* Upload the code to your Board
-* Upload the Website to SPIFFS.
-  - To upload the Web Site, you can use PlatformIO or you can upload with tool for Arduino IDE v1.x.x</br>
-  [Here](https://randomnerdtutorials.com/install-esp32-filesystem-uploader-arduino-ide/) is documentation how to upload files to SPIFFS with Arduino IDE.
+## Hardware
 
+The ESP32 already contains the CAN controller, so the only extra part is a **CAN transceiver** such as the SN65HVD230 or TJA1050. It can be connected to any free GPIO pair; the pins are set in the sketch. See the [schematic](../README.md#schematic) in the main README.
 
-## 📱Pictures of the application I made
-<a href="https://github.com/muki01/OBD2-Diagnostic-UI" target="_blank">
-  <img width=90% src="https://github.com/user-attachments/assets/5a3e0540-b56d-4c3a-a0bf-8c1affcda00c" />
+## Installation
+
+### 1. Install the libraries
+
+In the Arduino IDE, install:
+
+- `ESPAsyncWebServer`
+- `AsyncTCP`
+- `ArduinoJson`
+- `Adafruit NeoPixel`
+
+### 2. Set the pins
+
+Open `WebServer_Code_CAN.ino` and adjust the pins for your board:
+
+```cpp
+const uint8_t CAN_rxPin = 12;  // CAN RX pin
+const uint8_t CAN_txPin = 13;  // CAN TX pin
+
+#define Led 6
+#define Buzzer 8
+#define voltagePin 1
+```
+
+### 3. Upload the sketch
+
+Select your ESP32 board and upload.
+
+> On ESP32-C3, C6, S2, S3 and H2 boards, disable **USB CDC On Boot** in the **Tools** menu.
+
+### 4. Upload the web interface
+
+The files in the `data` folder have to be written to the SPIFFS file system. Use PlatformIO, or the file system uploader for the Arduino IDE — see [this guide](https://randomnerdtutorials.com/install-esp32-filesystem-uploader-arduino-ide/).
+
+## First Use
+
+1. Plug the device into the OBD-II port and turn the ignition on.
+2. Connect your phone to the Wi-Fi network **`OBD2 Master`** with the password `12345678`.
+3. Open **http://192.168.4.1**.
+
+The protocol, the Wi-Fi settings and firmware updates are all available on the settings page of the dashboard.
+
+## Web Interface
+
+<a href="https://github.com/muki01/OBD2-Diagnostic-UI">
+  <img width="100%" src="https://github.com/user-attachments/assets/9b3aebe5-998d-4731-85bc-a0d7666fd116" alt="Screenshots of the OBD2 web dashboard">
 </a>
-<a href="https://github.com/muki01/OBD2-Diagnostic-UI" target="_blank">
-  <img width=90% src="https://github.com/user-attachments/assets/8544df16-cf62-4a80-8f19-cbd0daadfb51" />
+<a href="https://github.com/muki01/OBD2-Diagnostic-UI">
+  <img width="100%" src="https://github.com/user-attachments/assets/8544df16-cf62-4a80-8f19-cbd0daadfb51" alt="More screenshots of the OBD2 web dashboard">
 </a>
 
-📂 *The UI for this application has been moved to a separate repository. You can check out the source code and details here:* **[Explore the Web UI Repository](https://github.com/muki01/OBD2-Diagnostic-UI)**
+The source of the web interface lives in its own repository: **[OBD2 Diagnostic UI](https://github.com/muki01/OBD2-Diagnostic-UI)**.

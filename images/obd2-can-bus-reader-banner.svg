@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-labelledby="t d">
+  <title id="t">OBD2 CAN Bus Reader - open-source ESP32 scan tool firmware for ISO 15765-4 vehicles</title>
+  <desc id="d">Banner showing an OBD-II socket with the CAN pins 6 and 14 highlighted, connected through an ESP32 to a phone that shows live engine data.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#111a2e"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="72%" cy="40%" r="55%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="8%" cy="100%" r="55%">
+      <stop offset="0" stop-color="#6366f1" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity=".035"/>
+    </pattern>
+    <clipPath id="card"><rect width="1280" height="440" rx="22"/></clipPath>
+  </defs>
+    <style>
+      .glow{animation:hit 1s linear infinite}
+      .ack{opacity:0;animation:hit 1s linear infinite}
+      .scan{animation:scan 1s linear infinite}
+      .live{animation:blink 1.6s ease-in-out infinite}
+      .pin{animation:blink 1.6s ease-in-out infinite}
+      .wave{animation:wave 3s ease-out infinite}
+      .w2{animation-delay:.18s}.w3{animation-delay:.36s}
+      .flow{animation:flow 1.2s linear infinite}
+      @keyframes hit{0%{opacity:0}3.0%{opacity:1}90.0%{opacity:1}130.0%{opacity:0}100%{opacity:0}}
+      @keyframes scan{from{transform:translateX(0)}to{transform:translateX(0px)}}
+      @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+      @keyframes wave{0%{opacity:0}10%{opacity:1}45%{opacity:1}70%{opacity:0}100%{opacity:0}}
+      @keyframes flow{from{stroke-dashoffset:18}to{stroke-dashoffset:0}}
+      @media (prefers-reduced-motion:reduce){.glow,.ack,.scan,.live,.pin,.wave,.flow{animation:none}.scan{opacity:0}.ack{opacity:1}}
+    </style>
+
+  <g clip-path="url(#card)">
+    <rect width="1280" height="440" fill="url(#bg)"/>
+    <rect width="1280" height="440" fill="url(#grid)"/>
+    <rect width="1280" height="440" fill="url(#glow1)"/>
+    <rect width="1280" height="440" fill="url(#glow2)"/>
+
+    <!-- left column -->
+    <text x="64" y="96" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="13" letter-spacing="2.4" fill="#22d3ee">OBD2 SCAN TOOL FIRMWARE</text>
+    <text x="60" y="182" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="72" font-weight="800" letter-spacing="-2"><tspan fill="#f8fafc">CAN Bus </tspan><tspan fill="url(#title)">Reader</tspan></text>
+    <text font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="23" fill="#cbd5e1">
+      <tspan x="64" y="228">Turn an ESP32 into a Wi-Fi scan tool for</tspan>
+      <tspan x="64" y="259">CAN bus cars, with a web dashboard.</tspan>
+    </text>
+    <rect x="64" y="286" width="105" height="32" rx="16" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".14"/>
+    <text x="116.5" y="307" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="14" fill="#cbd5e1">live data</text>
+    <rect x="179" y="286" width="140" height="32" rx="16" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".14"/>
+    <text x="249.0" y="307" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="14" fill="#cbd5e1">trouble codes</text>
+    <rect x="329" y="286" width="131" height="32" rx="16" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".14"/>
+    <text x="394.5" y="307" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="14" fill="#cbd5e1">freeze frame</text>
+    <rect x="470" y="286" width="54" height="32" rx="16" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".14"/>
+    <text x="497.0" y="307" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="14" fill="#cbd5e1">OTA</text>
+    <text x="64" y="362" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="12" letter-spacing="2" fill="#64748b">WORKS WITH</text>
+    <text x="64" y="386" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="15" fill="#94a3b8">ISO 15765-4 · 11 / 29 bit · 250 / 500 kbit/s</text>
+
+    <!-- right column -->
+    <!-- OBD-II socket -->
+    <path d="M708 150H896L880 250H724Z" fill="#111d33" stroke="#34476c" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="724.0" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="744.6" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="765.2" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="785.8" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="806.4" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect class="pin" x="827.0" y="172" width="11" height="18" rx="3" fill="#22d3ee"/><text x="832.5" y="165" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="11" font-weight="700" fill="#22d3ee">6</text><rect x="847.6" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="868.2" y="172" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="733.0" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="751.2" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="769.4" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="787.6" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="805.8" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect class="pin" x="824.0" y="212" width="11" height="18" rx="3" fill="#22d3ee"/><text x="829.5" y="245" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="11" font-weight="700" fill="#22d3ee">14</text><rect x="842.2" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/><rect x="860.4" y="212" width="11" height="18" rx="3" fill="#070d18" stroke="#3d5280"/>
+    <text x="802" y="284" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="12" letter-spacing="1.5" fill="#64748b">PINS 6 + 14 · CAN BUS</text>
+
+    <!-- dongle -->
+    <path d="M890 200H944" stroke="#34476c" stroke-width="3" stroke-linecap="round"/>
+    <path class="flow" d="M890 200H944" stroke="#22d3ee" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 14"/>
+    <rect x="944" y="168" width="92" height="64" rx="12" fill="#111d33" stroke="#34476c" stroke-width="2"/>
+    <rect x="958" y="184" width="64" height="32" rx="5" fill="#070d18" stroke="#3d5280"/>
+    <text x="990" y="205" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="12" font-weight="700" fill="#94a3b8">ESP32</text>
+    <circle class="live" cx="1024" cy="178" r="3" fill="#34d399"/>
+    <g fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round">
+      <path class="wave w1" d="M1050 188Q1057 200 1050 212"/>
+      <path class="wave w2" d="M1062 180Q1075 200 1062 220"/>
+      <path class="wave w3" d="M1074 172Q1093 200 1074 228"/>
+    </g>
+
+    <!-- phone with the dashboard -->
+    <rect x="1112" y="88" width="116" height="232" rx="20" fill="#0a101c" stroke="#3d5280" stroke-width="2"/>
+    <rect x="1154" y="97" width="32" height="5" rx="2.5" fill="#22304a"/>
+    <text x="1124" y="124" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="11" font-weight="700" fill="#e6ecf5">OBD2 <tspan fill="#22d3ee">Live</tspan></text>
+    <circle class="live" cx="1212" cy="120" r="4" fill="#34d399"/>
+    <rect x="1124" y="134" width="92" height="62" rx="9" fill="#1a2640" stroke="#2b3d61"/>
+    <text x="1170" y="170" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="800" fill="#f8fafc">1726</text>
+    <text x="1170" y="187" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="9" letter-spacing="1.5" fill="#22d3ee">RPM</text>
+    <rect x="1124" y="204" width="43" height="46" rx="8" fill="#1a2640" stroke="#2b3d61"/>
+    <text x="1145.5" y="229" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#f8fafc">88&#176;</text>
+    <text x="1145.5" y="242" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="7" letter-spacing="1" fill="#8a99b3">COOLANT</text>
+    <rect x="1173" y="204" width="43" height="46" rx="8" fill="#1a2640" stroke="#2b3d61"/>
+    <text x="1194.5" y="229" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#f8fafc">64</text>
+    <text x="1194.5" y="242" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="7" letter-spacing="1" fill="#8a99b3">KM/H</text>
+    <rect x="1124" y="258" width="92" height="22" rx="7" fill="#101a2c" stroke="#2b3d61"/>
+    <circle cx="1136" cy="269" r="3.5" fill="#f472b6"/>
+    <text x="1146" y="273" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="10" font-weight="700" fill="#e2e8f0">P0171</text>
+    <rect x="1124" y="286" width="92" height="22" rx="7" fill="#22d3ee"/>
+    <rect x="1147" y="295" width="46" height="4" rx="2" fill="#083344"/>
+  </g>
+</svg>
